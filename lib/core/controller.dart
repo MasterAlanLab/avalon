@@ -233,6 +233,8 @@ class CoreController {
     _interface.stopLog();
   }
 
+  Future<List<Log>> getLogs() => _interface.getLogs();
+
   Future<void> requestGc() async {
     await _interface.forceGc();
   }

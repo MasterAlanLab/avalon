@@ -107,6 +107,7 @@ const (
 	sideLoadExternalProviderMethod CoreMethod = "sideLoadExternalProvider"
 	startLogMethod                 CoreMethod = "startLog"
 	stopLogMethod                  CoreMethod = "stopLog"
+	getLogsMethod                  CoreMethod = "getLogs"
 	startListenerMethod            CoreMethod = "startListener"
 	stopListenerMethod             CoreMethod = "stopListener"
 	updateDnsMethod                CoreMethod = "updateDns"

@@ -37,7 +37,29 @@ class Logs extends _$Logs with AutoDisposeNotifierMixin {
   }
 
   Future<bool> exportLogs() async {
-    final logString = await encodeLogsTask(value.list);
+    final appLogs = value.list
+        .where((item) => item.payload.startsWith('[APP]'))
+        .toList();
+    List<Log> mihomoLogs;
+    try {
+      // The core keeps a bounded history independently of the optional live
+      // log subscription, so exporting works even when “show logs” was off.
+      mihomoLogs = await coreController.getLogs();
+    } catch (error) {
+      // Keep export usable with an older/unavailable core; live core entries
+      // already received by the UI are still better than dropping them.
+      commonPrint.log('Failed to fetch mihomo logs for export: $error');
+      mihomoLogs = value.list
+          .where((item) => !item.payload.startsWith('[APP]'))
+          .toList();
+    }
+    final logs = <Log>[
+      ...appLogs,
+      if (mihomoLogs.isNotEmpty)
+        Log.app('[APP] ===== MIHOMO CORE LOGS ====='),
+      ...mihomoLogs,
+    ];
+    final logString = await encodeLogsTask(logs);
     final tempFilePath = await appPath.tempFilePath;
     final file = File(tempFilePath);
     await file.safeWriteAsString(logString);

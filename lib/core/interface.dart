@@ -243,6 +243,17 @@ abstract class CoreHandlerInterface {
     _invokeMethod<bool>(method: CoreMethod.stopLog);
   }
 
+  Future<List<Log>> getLogs() async {
+    final data = await _invokeMethod<List<dynamic>>(
+      method: CoreMethod.getLogs,
+    );
+    return data
+            ?.whereType<Map>()
+            .map((item) => Log.fromJson(Map<String, Object?>.from(item)))
+            .toList() ??
+        [];
+  }
+
   Future<bool> startListener() async {
     return await _invokeMethod<bool>(method: CoreMethod.startListener) ?? false;
   }

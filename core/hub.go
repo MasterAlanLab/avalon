@@ -40,6 +40,7 @@ var (
 func handleInitClash(params *InitParams) bool {
 	runLock.Lock()
 	defer runLock.Unlock()
+	resetCoreLogBuffer()
 	version = params.Version
 	constant.SetHomeDir(params.HomeDir)
 	isInit.Store(true)

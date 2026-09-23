@@ -78,6 +78,9 @@ class _RecordingCoreHandler extends CoreHandlerInterface {
         'rule': ['MATCH,DIRECT'],
       },
       CoreMethod.getMemory => 2048,
+      CoreMethod.getLogs => [
+        {'LogLevel': 'error', 'Payload': '[TUN] failed to start'},
+      ],
       _ => '',
     };
     return result as T;
@@ -125,6 +128,16 @@ class _EmptyConfigCoreHandler extends _RecordingCoreHandler {
 }
 
 void main() {
+  test('core interface reads mihomo log history', () async {
+    final handler = _RecordingCoreHandler();
+
+    final logs = await handler.getLogs();
+
+    expect(logs, hasLength(1));
+    expect(logs.single.payload, '[TUN] failed to start');
+    expect(logs.single.logLevel, LogLevel.error);
+  });
+
   test('method call keeps structured arguments', () async {
     final fixture =
         json.decode(
