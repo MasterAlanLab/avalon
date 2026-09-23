@@ -51,7 +51,12 @@ func handleStartListener() bool {
 	runLock.Lock()
 	defer runLock.Unlock()
 	isRunning = true
-	updateListeners()
+	if err := updateListeners(true); err != nil {
+		isRunning = false
+		listener.StopListener()
+		log.Errorln("[CONFIG] start listeners failed: %v", err)
+		return false
+	}
 	resolver.ResetConnection()
 	return true
 }
@@ -480,7 +485,9 @@ func handleCrash() {
 }
 
 func handleUpdateConfig(params *UpdateParams) string {
-	updateConfig(params)
+	if err := updateConfig(params); err != nil {
+		return err.Error()
+	}
 	return ""
 }
 

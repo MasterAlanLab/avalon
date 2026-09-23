@@ -27,6 +27,7 @@ import (
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/listener"
+	LC "github.com/metacubex/mihomo/listener/config"
 	"github.com/metacubex/mihomo/log"
 	rp "github.com/metacubex/mihomo/rules/provider"
 	"github.com/metacubex/mihomo/tunnel"
@@ -105,12 +106,57 @@ func sideUpdateExternalProvider(p cp.Provider, bytes []byte) error {
 	}
 }
 
-func updateListeners() {
-	if !isRunning {
-		return
+// updateTunListener applies a TUN configuration and surfaces the failure state
+// recorded by mihomo's legacy listener API.
+func updateTunListener(tunConf LC.Tun) error {
+	log.Infoln(
+		"[TUN] recreate begin enable=%t device=%q stack=%v autoRoute=%t strictRoute=%t dnsHijack=%v routeAddress=%v",
+		tunConf.Enable,
+		tunConf.Device,
+		tunConf.Stack,
+		tunConf.AutoRoute,
+		tunConf.StrictRoute,
+		tunConf.DNSHijack,
+		tunConf.RouteAddress,
+	)
+	// mihomo's ReCreateTun API predates error returns and reports a failed
+	// creation by recording an effectively disabled LastTunConf.  Inspect
+	// that state here so a failed OS-level recreate is still returned to the
+	// caller without changing the upstream submodule.
+	listener.ReCreateTun(tunConf, tunnel.Tunnel)
+	actualTun := listener.GetTunConf()
+	if tunConf.Enable && !actualTun.Enable {
+		err := fmt.Errorf("recreate TUN failed: listener is disabled after create")
+		log.Errorln(
+			"[TUN] recreate failed requestedEnable=%t actualEnable=%t device=%q stack=%v: %v",
+			tunConf.Enable,
+			actualTun.Enable,
+			actualTun.Device,
+			actualTun.Stack,
+			err,
+		)
+		return err
 	}
-	if currentConfig == nil {
-		return
+	log.Infoln(
+		"[TUN] recreate complete requestedEnable=%t actualEnable=%t device=%q stack=%v",
+		tunConf.Enable,
+		actualTun.Enable,
+		actualTun.Device,
+		actualTun.Stack,
+	)
+	return nil
+}
+
+// updateListeners refreshes ordinary inbound listeners and optionally refreshes
+// the TUN listener. The TUN device is an OS resource, so recreating it for a
+// change that only affects routing mode can make Windows remove the existing
+// Wintun adapter while the replacement is still starting.
+func updateListeners(recreateTun bool) error {
+	if !isRunning {
+		return nil
+	}
+	if currentConfig == nil || currentConfig.General == nil {
+		return errors.New("config is not loaded")
 	}
 	listeners := currentConfig.Listeners
 	general := currentConfig.General
@@ -132,13 +178,34 @@ func updateListeners() {
 	listener.ReCreateShadowSocks(general.ShadowSocksConfig, tunnel.Tunnel)
 	listener.ReCreateVmess(general.VmessConfig, tunnel.Tunnel)
 	listener.ReCreateTuic(general.TuicServer, tunnel.Tunnel)
-	if !features.Android {
-		listener.ReCreateTun(general.Tun, tunnel.Tunnel)
+	if recreateTun && !features.Android {
+		return updateTunListener(general.Tun)
 	}
+	return nil
 }
 
 func stopListeners() {
 	listener.StopListener()
+}
+
+// equalTunConfig compares the effective TUN settings rather than the order in
+// which list-valued settings were supplied.  ReCreateTun sorts these lists
+// before applying them; normalizing the snapshots here avoids tearing down a
+// live device for an order-only update.
+func equalTunConfig(left, right LC.Tun) bool {
+	leftBytes, leftErr := json.Marshal(left)
+	rightBytes, rightErr := json.Marshal(right)
+	if leftErr != nil || rightErr != nil {
+		return left.Equal(right)
+	}
+	var normalizedLeft, normalizedRight LC.Tun
+	if json.Unmarshal(leftBytes, &normalizedLeft) != nil ||
+		json.Unmarshal(rightBytes, &normalizedRight) != nil {
+		return left.Equal(right)
+	}
+	normalizedLeft.Sort()
+	normalizedRight.Sort()
+	return normalizedLeft.Equal(normalizedRight)
 }
 
 func patchSelectGroup(mapping map[string]string) {
@@ -181,10 +248,15 @@ func readFile(path string) ([]byte, error) {
 	return data, err
 }
 
-func updateConfig(params *UpdateParams) {
+func updateConfig(params *UpdateParams) error {
 	runLock.Lock()
 	defer runLock.Unlock()
+	if currentConfig == nil || currentConfig.General == nil {
+		return errors.New("config is not loaded")
+	}
 	general := currentConfig.General
+	previousMode := general.Mode
+	previousTun := general.Tun
 	if params.MixedPort != nil {
 		general.MixedPort = *params.MixedPort
 	}
@@ -251,6 +323,27 @@ func updateConfig(params *UpdateParams) {
 			general.Tun.Stack = *params.Tun.Stack
 		}
 	}
+	tunChanged := params.Tun != nil && !equalTunConfig(general.Tun, previousTun)
+	log.Infoln(
+		"[CONFIG] hot update mode=%s->%s tunChanged=%t tunEnable=%t->%t device=%q->%q stack=%v->%v autoRoute=%t->%t strictRoute=%t->%t dnsHijack=%v->%v routeAddress=%v->%v",
+		previousMode,
+		general.Mode,
+		tunChanged,
+		previousTun.Enable,
+		general.Tun.Enable,
+		previousTun.Device,
+		general.Tun.Device,
+		previousTun.Stack,
+		general.Tun.Stack,
+		previousTun.AutoRoute,
+		general.Tun.AutoRoute,
+		previousTun.StrictRoute,
+		general.Tun.StrictRoute,
+		previousTun.DNSHijack,
+		general.Tun.DNSHijack,
+		previousTun.RouteAddress,
+		general.Tun.RouteAddress,
+	)
 
 	if params.GeoAutoUpdate != nil {
 		updater.SetGeoAutoUpdate(*params.GeoAutoUpdate)
@@ -259,10 +352,14 @@ func updateConfig(params *UpdateParams) {
 		updater.SetGeoUpdateInterval(*params.GeoUpdateInterval)
 	}
 
-	updateListeners()
+	if err := updateListeners(tunChanged); err != nil {
+		log.Errorln("[CONFIG] hot update listeners failed: %v", err)
+		return err
+	}
 	if updater.GeoAutoUpdate() {
 		updater.RegisterGeoUpdaterWithCancel()
 	}
+	return nil
 }
 
 func applyConfig(params *SetupParams) error {
@@ -277,7 +374,9 @@ func applyConfig(params *SetupParams) error {
 	}
 	hub.ApplyConfig(currentConfig)
 	patchSelectGroup(params.SelectedMap)
-	updateListeners()
+	if listenerErr := updateListeners(true); listenerErr != nil {
+		return listenerErr
+	}
 	if updater.GeoAutoUpdate() {
 		updater.RegisterGeoUpdaterWithCancel()
 	}

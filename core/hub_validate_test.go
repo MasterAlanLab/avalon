@@ -41,6 +41,30 @@ rules:
 	}
 }
 
+func TestHandleValidateConfigAcceptsGlobalSelectorPointingAtProxyGroup(t *testing.T) {
+	path := writeConfig(t, `
+proxies:
+  - name: EXIT
+    type: socks5
+    server: 127.0.0.1
+    port: 1080
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies:
+      - EXIT
+  - name: GLOBAL
+    type: select
+    proxies:
+      - PROXY
+rules:
+  - MATCH,PROXY
+`)
+	if message := handleValidateConfig(path); message != "" {
+		t.Fatalf("expected explicit GLOBAL selector to parse, got %q", message)
+	}
+}
+
 func TestHandleValidateConfigRejectsInvalidProxy(t *testing.T) {
 	path := writeConfig(t, `
 proxies:
@@ -147,5 +171,15 @@ func TestHandleValidateConfigRejectsMissingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing.yaml")
 	if message := handleValidateConfig(path); message == "" {
 		t.Fatal("expected a missing config file to be rejected")
+	}
+}
+
+func TestHandleUpdateConfigReportsMissingConfig(t *testing.T) {
+	previous := currentConfig
+	currentConfig = nil
+	defer func() { currentConfig = previous }()
+
+	if message := handleUpdateConfig(&UpdateParams{}); message != "config is not loaded" {
+		t.Fatalf("expected update error to reach the method boundary, got %q", message)
 	}
 }

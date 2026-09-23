@@ -304,6 +304,7 @@ Future<VM2<String, String>> _makeRealProfileTask(
     ];
   }
   rawConfig['rules'] = rules;
+  _ensureGlobalProxyGroup(rawConfig);
   final yaml = await _encodeYaml(Map<String, dynamic>.from(rawConfig));
   return VM2(yaml, yaml.toMd5());
 }
@@ -314,6 +315,152 @@ Map<String, dynamic> _proxyGroupConfig(ProxyGroup group) {
     ..remove('profileId')
     ..remove('order');
   return config;
+}
+
+/// mihomo's global mode selects the `GLOBAL` outbound directly.  When the
+/// config omits that group mihomo creates an implicit selector whose default
+/// is usually DIRECT, so switching from rule mode silently bypasses PROXY and
+/// any generated chain selector.  Keep an explicit, validated entry in every
+/// assembled profile so a mode-only hot update has the same outbound graph.
+void _ensureGlobalProxyGroup(Map<String, dynamic> config) {
+  final entries = <dynamic>[];
+  final groups = <Map<String, dynamic>>[];
+  final rawGroups = config['proxy-groups'];
+  if (rawGroups is List) {
+    for (final raw in rawGroups) {
+      if (raw is Map) {
+        final group = Map<String, dynamic>.from(raw);
+        groups.add(group);
+        entries.add(group);
+      } else {
+        entries.add(raw);
+      }
+    }
+  }
+
+  String? groupName(Map<String, dynamic> group) {
+    final value = group['name']?.toString().trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  final groupByName = <String, Map<String, dynamic>>{};
+  for (final group in groups) {
+    final name = groupName(group);
+    if (name != null) groupByName.putIfAbsent(name, () => group);
+  }
+  if (groupByName.containsKey('GLOBAL')) {
+    config['proxy-groups'] = entries;
+    return;
+  }
+
+  final proxyNames = <String>{};
+  final rawProxies = config['proxies'];
+  if (rawProxies is List) {
+    for (final raw in rawProxies) {
+      if (raw is Map) {
+        final name = raw['name']?.toString().trim();
+        if (name != null && name.isNotEmpty) proxyNames.add(name);
+      }
+    }
+  }
+
+  final reserved = {
+    'DIRECT',
+    'REJECT',
+    'REJECT-DROP',
+    'COMPATIBLE',
+    'PASS',
+    'PASS-RULE',
+    'GLOBAL',
+  };
+
+  bool isKnownTarget(String name) =>
+      groupByName.containsKey(name) ||
+      proxyNames.contains(name) ||
+      reserved.contains(name);
+
+  // Reject a group that would introduce a direct or indirect group cycle.
+  bool isAcyclicGroup(String name) {
+    final visiting = <String>{};
+    final visited = <String>{};
+    bool visit(String current) {
+      if (visited.contains(current)) return true;
+      if (!visiting.add(current)) return false;
+      final group = groupByName[current];
+      final members = group?['proxies'];
+      if (members is List) {
+        for (final member in members) {
+          final memberName = member.toString().trim();
+          if (memberName == 'GLOBAL' || !isKnownTarget(memberName)) {
+            return false;
+          }
+          if (groupByName.containsKey(memberName) && !visit(memberName)) {
+            return false;
+          }
+        }
+      }
+      visiting.remove(current);
+      visited.add(current);
+      return true;
+    }
+
+    return visit(name);
+  }
+
+  bool usable(String? name) {
+    if (name == null || name.isEmpty || name == 'GLOBAL') return false;
+    if (reserved.contains(name) && groupByName.containsKey(name)) return false;
+    if (!isKnownTarget(name)) return false;
+    return !groupByName.containsKey(name) || isAcyclicGroup(name);
+  }
+
+  String? target;
+  if (usable('PROXY')) target = 'PROXY';
+
+  // Profiles without PROXY commonly use a single custom group as the MATCH
+  // target.  Reuse that target before falling back to an arbitrary group.
+  if (target == null && config['rules'] is List) {
+    for (final rawRule in (config['rules'] as List).reversed) {
+      final parts = rawRule.toString().split(',');
+      if (parts.length < 2 || parts.first.trim().toUpperCase() != 'MATCH') {
+        continue;
+      }
+      final candidate = parts[1].trim();
+      if (usable(candidate)) {
+        target = candidate;
+        break;
+      }
+    }
+  }
+
+  if (target == null && usable('__avalon_chains')) target = '__avalon_chains';
+  if (target == null) {
+    for (final group in groups) {
+      final candidate = groupName(group);
+      if (usable(candidate)) {
+        target = candidate;
+        break;
+      }
+    }
+  }
+  if (target == null) {
+    for (final candidate in proxyNames) {
+      if (!reserved.contains(candidate)) {
+        target = candidate;
+        break;
+      }
+    }
+  }
+
+  // A profile with no usable outbound still gets an explicit, deterministic
+  // GLOBAL selector rather than relying on mihomo's implicit DIRECT default.
+  target ??= 'DIRECT';
+  entries.add({
+    'name': 'GLOBAL',
+    'type': 'select',
+    'proxies': [target],
+  });
+  config['proxy-groups'] = entries;
 }
 
 Future<List<String>> shakingProfileTask(

@@ -180,8 +180,12 @@ void main() {
 
     expect(config['dns']['enable'], true);
     expect(config['dns']['nameserver'], contains('system://'));
-    expect(config['proxy-groups'], hasLength(1));
-    expect(config['proxy-groups'].single['id'], isNull);
+    expect(config['proxy-groups'], hasLength(2));
+    final groups = config['proxy-groups'] as YamlList;
+    expect(
+      groups.firstWhere((item) => item['name'] == 'Select')['id'],
+      isNull,
+    );
     expect(config['rules'], ['DOMAIN,custom.example,DIRECT']);
   });
 
@@ -218,13 +222,118 @@ void main() {
         ),
       );
       final config = loadYaml(result.a) as YamlMap;
-      expect(config['proxy-groups'], hasLength(2));
+      expect(config['proxy-groups'], hasLength(3));
       expect(
         (config['proxy-groups'] as YamlList).map((item) => item['name']),
         contains('__avalon_chain_1_selector'),
       );
     },
   );
+
+  test('makeRealProfileTask adds GLOBAL pointing at PROXY', () async {
+    final result = await makeRealProfileTask(
+      const MakeRealProfileState(
+        profilesPath: '/profiles',
+        profileId: 12,
+        rawConfig: {
+          'proxies': [
+            {'name': 'CHAIN_EXIT', 'type': 'socks5'},
+          ],
+          'proxy-groups': [
+            {
+              'name': 'PROXY',
+              'type': 'select',
+              'proxies': ['CHAIN_EXIT'],
+            },
+          ],
+        },
+        realPatchConfig: PatchClashConfig(),
+        overrideDns: false,
+        appendSystemDns: false,
+        proxyGroups: [],
+        rules: [],
+        addedRules: [],
+        defaultUA: 'Fallback-UA',
+      ),
+    );
+    final config = loadYaml(result.a) as YamlMap;
+    final globals = (config['proxy-groups'] as YamlList)
+        .where((item) => item['name'] == 'GLOBAL')
+        .toList();
+    expect(globals, hasLength(1));
+    expect(globals.single['proxies'], ['PROXY']);
+  });
+
+  test('makeRealProfileTask preserves an explicit GLOBAL group', () async {
+    final result = await makeRealProfileTask(
+      const MakeRealProfileState(
+        profilesPath: '/profiles',
+        profileId: 13,
+        rawConfig: {
+          'proxy-groups': [
+            {
+              'name': 'PROXY',
+              'type': 'select',
+              'proxies': ['DIRECT'],
+            },
+            {
+              'name': 'GLOBAL',
+              'type': 'select',
+              'proxies': ['PROXY'],
+            },
+          ],
+        },
+        realPatchConfig: PatchClashConfig(),
+        overrideDns: false,
+        appendSystemDns: false,
+        proxyGroups: [],
+        rules: [],
+        addedRules: [],
+        defaultUA: 'Fallback-UA',
+      ),
+    );
+    final config = loadYaml(result.a) as YamlMap;
+    final names = (config['proxy-groups'] as YamlList)
+        .map((item) => item['name'])
+        .toList();
+    expect(names.where((name) => name == 'GLOBAL'), hasLength(1));
+  });
+
+  test('makeRealProfileTask avoids introducing a GLOBAL group cycle', () async {
+    final result = await makeRealProfileTask(
+      const MakeRealProfileState(
+        profilesPath: '/profiles',
+        profileId: 14,
+        rawConfig: {
+          'proxy-groups': [
+            {
+              'name': 'PROXY',
+              'type': 'select',
+              'proxies': ['GLOBAL'],
+            },
+            {
+              'name': 'SAFE',
+              'type': 'select',
+              'proxies': ['DIRECT'],
+            },
+          ],
+          'rules': ['MATCH,PROXY'],
+        },
+        realPatchConfig: PatchClashConfig(),
+        overrideDns: false,
+        appendSystemDns: false,
+        proxyGroups: [],
+        rules: [],
+        addedRules: [],
+        defaultUA: 'Fallback-UA',
+      ),
+    );
+    final config = loadYaml(result.a) as YamlMap;
+    final global = (config['proxy-groups'] as YamlList).firstWhere(
+      (item) => item['name'] == 'GLOBAL',
+    );
+    expect(global['proxies'], ['SAFE']);
+  });
 
   Future<YamlMap> buildRealProfile(
     PatchClashConfig patchConfig, {
