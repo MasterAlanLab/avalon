@@ -6,6 +6,8 @@ const outputDir = 'assets/images/icon';
 const statusIconNames = ['status_1', 'status_2', 'status_3'];
 const statusPngSize = 256;
 const trayIcoSize = 32;
+const trayBackgroundColor = '#17191D';
+const trayCornerRadiusRatio = 230 / 1024;
 
 Future<void> main() async {
   final rsvgConvert = await _findExecutable('rsvg-convert');
@@ -30,6 +32,10 @@ Future<void> main() async {
 
       final png = File('$outputDir/$name.png');
       final icoPng = File('${tempDir.path}/$name-32.png');
+      final windowsSource = await _createWindowsTraySource(
+        source: source,
+        output: File('${tempDir.path}/$name-windows.svg'),
+      );
       final ico = File('$outputDir/$name.ico');
 
       await _renderSvg(
@@ -41,7 +47,7 @@ Future<void> main() async {
       );
       await _renderSvg(
         rsvgConvert: rsvgConvert,
-        source: source,
+        source: windowsSource,
         output: icoPng,
         width: trayIcoSize,
         height: trayIcoSize,
@@ -55,6 +61,43 @@ Future<void> main() async {
       await tempDir.delete(recursive: true);
     }
   }
+}
+
+/// Builds the Windows-only tray variant. PNG is also used by Linux/macOS and
+/// remains transparent, while Windows gets the same dark rounded backplate as
+/// the Android launcher icon so the mark stays visible in light mode.
+Future<File> _createWindowsTraySource({
+  required File source,
+  required File output,
+}) async {
+  final svg = await source.readAsString();
+  final root = RegExp(r'<svg\b[^>]*>').firstMatch(svg);
+  final viewBoxMatch = RegExp(
+    r'''viewBox\s*=\s*["']\s*([^"']+?)\s*["']''',
+  ).firstMatch(svg);
+  if (root == null || viewBoxMatch == null) {
+    throw FormatException('Missing SVG root/viewBox in ${source.path}');
+  }
+
+  final viewBox = viewBoxMatch.group(1)!
+      .trim()
+      .split(RegExp(r'\s+|,'))
+      .map(double.parse)
+      .toList();
+  if (viewBox.length != 4) {
+    throw FormatException('Invalid SVG viewBox in ${source.path}');
+  }
+  final x = viewBox[0];
+  final y = viewBox[1];
+  final width = viewBox[2];
+  final height = viewBox[3];
+  final radius = width * trayCornerRadiusRatio;
+  final background =
+      '<rect x="$x" y="$y" width="$width" height="$height" '
+      'rx="$radius" fill="$trayBackgroundColor"/>';
+  final wrapped = svg.replaceRange(root.end, root.end, '\n  $background');
+  await output.writeAsString(wrapped);
+  return output;
 }
 
 Future<String?> _findExecutable(String executable) async {

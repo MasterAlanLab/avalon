@@ -2,6 +2,7 @@ package com.masteralanlab.avalon
 
 import android.os.Bundle
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import com.masteralanlab.avalon.plugins.AppPlugin
 import com.masteralanlab.avalon.plugins.ServicePlugin
 import com.masteralanlab.avalon.plugins.TilePlugin
@@ -15,6 +16,10 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
+        // Keep the Flutter surface behind both system bars. Without this,
+        // Android can leave the launch window's black bar visible in light
+        // mode even though Flutter requests edge-to-edge afterwards.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         splashScreen.setOnExitAnimationListener { provider ->
             provider.remove()

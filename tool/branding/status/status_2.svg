@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 1024 1024">
+<!-- Keep the running tray mark large enough to remain legible at Windows' 16px size. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="230 230 560 560">
   <g fill="none" stroke="#E3A72F" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
     <path d="M354 704 L454 350"/><path d="M570 350 L670 704"/>
   </g>

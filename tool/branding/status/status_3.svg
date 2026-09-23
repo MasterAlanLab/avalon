@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 1024 1024">
   <circle cx="512" cy="512" r="452" fill="none" stroke="#4E9B76" stroke-width="28"/>
+  <!-- Match the tray mark's visual weight while keeping the state ring intact. -->
+  <g transform="translate(512 512) scale(1.8) translate(-512 -512)">
   <g fill="none" stroke="#E3A72F" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
     <path d="M354 704 L454 350"/><path d="M570 350 L670 704"/>
   </g>
   <g fill="none" stroke="#E3A72F" stroke-width="54" stroke-linecap="round">
     <path d="M407 586 H617"/><path d="M426 516 H598"/><path d="M446 446 H578"/>
+  </g>
   </g>
 </svg>
