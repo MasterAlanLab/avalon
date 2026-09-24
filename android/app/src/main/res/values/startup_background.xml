@@ -2,4 +2,6 @@
 <resources>
     <!-- Match the light Flutter surface while the engine is starting. -->
     <color name="startup_background">#F7F8FA</color>
+    <color name="startup_background_light">#F7F8FA</color>
+    <color name="startup_background_dark">#17191D</color>
 </resources>

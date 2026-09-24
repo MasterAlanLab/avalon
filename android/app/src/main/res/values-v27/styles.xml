@@ -16,4 +16,34 @@
         <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/splash_screen_icon</item>
         <item name="postSplashScreenTheme">@style/NormalTheme</item>
     </style>
+    <style name="LaunchThemeLight">
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">@color/startup_background_light</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="windowSplashScreenBackground">@color/startup_background_light</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen_icon</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">@color/startup_background_light</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/splash_screen_icon</item>
+        <item name="postSplashScreenTheme">@style/NormalThemeLight</item>
+    </style>
+    <style name="LaunchThemeDark">
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowBackground">@color/startup_background_dark</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="windowSplashScreenBackground">@color/startup_background_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen_icon</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">@color/startup_background_dark</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/splash_screen_icon</item>
+        <item name="postSplashScreenTheme">@style/NormalThemeDark</item>
+    </style>
 </resources>

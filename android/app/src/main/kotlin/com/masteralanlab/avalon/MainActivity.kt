@@ -1,6 +1,8 @@
 package com.masteralanlab.avalon
 
+import android.content.Context.MODE_PRIVATE
 import android.os.Bundle
+import org.json.JSONObject
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import com.masteralanlab.avalon.plugins.AppPlugin
@@ -15,6 +17,8 @@ class MainActivity : FlutterActivity() {
     private var systemSplashVisible = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val themeMode = readThemeMode()
+        setTheme(resolveLaunchTheme(themeMode))
         val splashScreen = installSplashScreen()
         // Keep the Flutter surface behind both system bars. Without this,
         // Android can leave the launch window's black bar visible in light
@@ -26,6 +30,21 @@ class MainActivity : FlutterActivity() {
             systemSplashVisible = false
         }
     }
+
+    private fun readThemeMode(): String? {
+        val config = getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
+            .getString("flutter.config", null) ?: return null
+        return runCatching {
+            JSONObject(config).optJSONObject("themeProps")?.optString("themeMode")
+        }.getOrNull()
+    }
+
+    private fun resolveLaunchTheme(themeMode: String?): Int =
+        when (themeMode) {
+            "light" -> R.style.LaunchThemeLight
+            "system" -> R.style.LaunchTheme
+            else -> R.style.LaunchThemeDark
+        }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

@@ -9,6 +9,7 @@ import 'package:rust_api/rust_api.dart';
 
 import 'application.dart';
 import 'common/common.dart';
+import 'providers/providers.dart';
 import 'widgets/startup_splash.dart';
 
 Future<void> main(List<String> arguments) async {
@@ -55,35 +56,28 @@ class _BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<_BootstrapApp> {
-  final Completer<void> _splashComplete = Completer<void>();
-  late final Future<_InitializationResult> _ready;
-
-  @override
-  void initState() {
-    super.initState();
-    _ready = _waitForSplashAndInitialization();
-  }
-
-  Future<_InitializationResult> _waitForSplashAndInitialization() async {
-    final result = await widget.initialization;
-    await _splashComplete.future;
-    return result;
-  }
+  bool _splashComplete = false;
 
   void _handleSplashComplete() {
-    if (!_splashComplete.isCompleted) {
-      _splashComplete.complete();
-    }
+    if (!mounted || _splashComplete) return;
+    setState(() => _splashComplete = true);
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<_InitializationResult>(
-      future: _ready,
+      future: widget.initialization,
       builder: (context, snapshot) {
         final result = snapshot.data;
-        if (result == null) {
-          return StartupSplash(onComplete: _handleSplashComplete);
+        if (result == null || !_splashComplete) {
+          // The persisted theme is available once initialization finishes;
+          // keep the splash on that resolved brightness instead of falling
+          // back to the platform brightness for an explicitly selected mode.
+          final brightness = result?.container?.read(currentBrightnessProvider);
+          return StartupSplash(
+            onComplete: _handleSplashComplete,
+            brightness: brightness,
+          );
         }
 
         if (result.error != null || result.container == null) {

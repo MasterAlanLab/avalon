@@ -10,6 +10,21 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen_icon</item>
         <item name="postSplashScreenTheme">@style/NormalTheme</item>
     </style>
+    <!-- Explicit variants selected from the persisted in-app theme mode. -->
+    <style name="LaunchThemeLight" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/startup_background_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="windowSplashScreenBackground">@color/startup_background_light</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen_icon</item>
+        <item name="postSplashScreenTheme">@style/NormalThemeLight</item>
+    </style>
+    <style name="LaunchThemeDark" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/startup_background_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="windowSplashScreenBackground">@color/startup_background_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen_icon</item>
+        <item name="postSplashScreenTheme">@style/NormalThemeDark</item>
+    </style>
     <!-- Theme applied to the Android Window as soon as the process has started.
          This theme determines the color of the Android Window while your
          Flutter UI initializes, as well as behind your Flutter UI while its
@@ -22,6 +37,20 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+    </style>
+    <style name="NormalThemeLight" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+    <style name="NormalThemeDark" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
     <style name="TransparentTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
