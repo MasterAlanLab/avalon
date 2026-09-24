@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Avalon desktop app icon</title>
+  <rect width="1024" height="1024" rx="230" fill="#17191D"/>
+
+  <!-- Desktop shells do not apply the Android adaptive-icon safe-area
+       scaling, so use a larger mark while keeping a comfortable edge margin. -->
+  <g transform="translate(512 512) scale(1.4) translate(-512 -512)">
+    <g fill="none" stroke="#E3A72F" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M354 704 L454 350"/>
+      <path d="M570 350 L670 704"/>
+    </g>
+
+    <g fill="none" stroke="#E3A72F" stroke-width="54" stroke-linecap="round">
+      <path d="M407 586 H617"/>
+      <path d="M426 516 H598"/>
+      <path d="M446 446 H578"/>
+    </g>
+
+    <g fill="#F3D58A" stroke="#E3A72F" stroke-width="12">
+      <circle cx="354" cy="704" r="23"/>
+      <circle cx="670" cy="704" r="23"/>
+    </g>
+  </g>
+</svg>

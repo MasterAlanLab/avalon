@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Match the dark Flutter splash surface. -->
+    <color name="startup_background">#17191D</color>
+</resources>

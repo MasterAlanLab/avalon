@@ -150,6 +150,16 @@ class ApplicationState extends ConsumerState<Application> {
           appSettingProvider.select((state) => state.locale),
         );
         final themeProps = ref.watch(themeSettingProvider);
+        final lightColorScheme = ref.read(
+          genColorSchemeProvider(Brightness.light),
+        );
+        final darkColorScheme = ref
+            .read(genColorSchemeProvider(Brightness.dark))
+            .toPureBlack(themeProps.pureBlack);
+        final appBrightness = ref.watch(currentBrightnessProvider);
+        final appBackgroundColor = appBrightness == Brightness.dark
+            ? darkColorScheme.surface
+            : lightColorScheme.surface;
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           navigatorKey: globalState.navigatorKey,
@@ -161,18 +171,27 @@ class ApplicationState extends ConsumerState<Application> {
             GlobalWidgetsLocalizations.delegate,
           ],
           builder: (_, child) {
-            return AppEnvManager(
-              child: ValueListenableBuilder<AppActivityState>(
-                valueListenable: appActivity,
-                builder: (_, activity, child) {
-                  return TickerMode(
-                    enabled: activity.isUiActive,
-                    child: child!,
-                  );
-                },
-                child: _buildApp(
-                  child: _buildPlatformState(
-                    child: _buildState(child: _buildPlatformApp(child: child!)),
+            return ColoredBox(
+              // HomePage intentionally waits for its first measured view
+              // size. Paint the resolved theme surface behind that short
+              // initialization window so the native splash never reveals a
+              // black Flutter surface when switching to the app.
+              color: appBackgroundColor,
+              child: AppEnvManager(
+                child: ValueListenableBuilder<AppActivityState>(
+                  valueListenable: appActivity,
+                  builder: (_, activity, child) {
+                    return TickerMode(
+                      enabled: activity.isUiActive,
+                      child: child!,
+                    );
+                  },
+                  child: _buildApp(
+                    child: _buildPlatformState(
+                      child: _buildState(
+                        child: _buildPlatformApp(child: child!),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -186,14 +205,12 @@ class ApplicationState extends ConsumerState<Application> {
           theme: ThemeData(
             useMaterial3: true,
             pageTransitionsTheme: _pageTransitionsTheme,
-            colorScheme: ref.read(genColorSchemeProvider(Brightness.light)),
+            colorScheme: lightColorScheme,
           ),
           darkTheme: ThemeData(
             useMaterial3: true,
             pageTransitionsTheme: _pageTransitionsTheme,
-            colorScheme: ref
-                .read(genColorSchemeProvider(Brightness.dark))
-                .toPureBlack(themeProps.pureBlack),
+            colorScheme: darkColorScheme,
           ),
           home: child!,
         );
