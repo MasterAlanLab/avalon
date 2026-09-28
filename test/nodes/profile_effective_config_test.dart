@@ -115,7 +115,7 @@ void main() {
     ]);
   });
 
-  test('generates a reachable IPv4 manual outbound policy', () async {
+  test('upgrades a legacy IPv4 manual outbound policy', () async {
     const node = ProxyNode(
       id: 500,
       displayName: 'Manual',
@@ -144,22 +144,28 @@ void main() {
           nodeStorePath: Directory.systemTemp.path,
         ).assemble(
           profileId: 1,
-          profileConfig: const {'proxies': []},
+          profileConfig: const {
+            'proxies': [],
+            'proxy-groups': [
+              {
+                'name': 'PROXY',
+                'type': 'select',
+                'proxies': <String>[],
+              },
+            ],
+            'rules': ['MATCH,PROXY'],
+          },
           ipv6Available: false,
         );
 
     final groups = (artifact.config['proxy-groups'] as List).cast<Map>();
     final groupNames = groups.map((group) => group['name']).toSet();
     expect(groupNames, contains('__avalon_manual_nodes'));
-    expect(groupNames, contains('__avalon_default'));
-    expect(
-      (artifact.config['rules'] as List),
-      contains('GEOIP,CN,DIRECT,no-resolve'),
-    );
-    expect(
-      (artifact.config['rules'] as List),
-      contains('GEOIP,private,DIRECT,no-resolve'),
-    );
+    expect(groupNames, contains('PROXY'));
+    final rules = (artifact.config['rules'] as List).cast<String>();
+    expect(rules, contains('GEOIP,CN,DIRECT,no-resolve'));
+    expect(rules, contains('GEOIP,private,DIRECT,no-resolve'));
+    expect(rules.last, 'MATCH,PROXY');
     final manual = (artifact.config['proxies'] as List).cast<Map>().singleWhere(
       (proxy) => proxy['name'] == 'Manual',
     );

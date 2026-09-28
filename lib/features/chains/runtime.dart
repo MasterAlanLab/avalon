@@ -706,7 +706,7 @@ class ProfileEffectiveConfigService {
   }
 }
 
-/// Mainland-direct/other-proxy policy for a hand-built profile without rules.
+/// Mainland-direct/other-proxy policy for a hand-built profile.
 /// `GEOSITE,private` only covers domains; `GEOIP,private` keeps LAN and other
 /// reserved IP literals (192.168.x.x, 10.x, fd00::/8 ...) off the proxy.
 const _defaultSplitRules = [
@@ -723,8 +723,8 @@ const _defaultSplitRules = [
 /// must be reachable from a rule target through one or more proxy groups.
 /// This function adds a namespaced group for unreferenced manual nodes and
 /// connects it, together with unconfigured chains, to the profile's effective
-/// MATCH group.  A profile with no source rules receives a deterministic
-/// mainland-direct/other-proxy policy.
+/// MATCH group.  Hand-built profiles receive a deterministic
+/// mainland-direct/other-proxy policy before their catch-all rule.
 List<ChainDiagnostic> _ensureManualRouting({
   required Map<String, dynamic> config,
   required Set<String> boundProxyNames,
@@ -759,6 +759,37 @@ List<ChainDiagnostic> _ensureManualRouting({
           (config['rules'] as List).map((item) => item.toString()),
         )
       : <String>[];
+
+  // Apply the policy at assembly time so legacy profiles are upgraded on their
+  // next apply. Existing CN rules remain user choices; only missing matchers
+  // are inserted immediately before MATCH.
+  if (!isSubscriptionProfile &&
+      rules.isNotEmpty &&
+      (proxyNames.isNotEmpty ||
+          boundProxyNames.isNotEmpty ||
+          chainSelectors.isNotEmpty)) {
+    final hasGeositeCn = rules.any((rule) {
+      final upper = rule.trim().toUpperCase();
+      return upper.startsWith('GEOSITE,CN,');
+    });
+    final hasGeoipCn = rules.any((rule) {
+      final upper = rule.trim().toUpperCase();
+      return upper.startsWith('GEOIP,CN,');
+    });
+    final defaults = !hasGeositeCn && !hasGeoipCn
+        ? _defaultSplitRules
+        : <String>[
+            if (!hasGeositeCn) 'GEOSITE,cn,DIRECT',
+            if (!hasGeoipCn) 'GEOIP,CN,DIRECT,no-resolve',
+          ];
+    if (defaults.isNotEmpty) {
+      final matchIndex = rules.lastIndexWhere(_isMatchRule);
+      rules.insertAll(
+        matchIndex < 0 ? rules.length : matchIndex,
+        defaults,
+      );
+    }
+  }
 
   final reachable = _reachableOutboundNames(
     groups: groupByName,
