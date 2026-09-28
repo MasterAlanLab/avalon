@@ -226,11 +226,11 @@ Future<VM2<String, String>> _makeRealProfileTask(
   // 走到这里 rawConfig['dns'] 可能仍是订阅原样带来的 map（YamlMap / const map 都是
   // 只读的），先复制成可写的再改。
   rawConfig['dns'] = Map<String, dynamic>.from(rawConfig['dns'] as Map);
-  // fake-ip 模式下 AAAA 在 withFakeIP 中间件就被短路了，走不到检查 dns.ipv6 的
-  // withResolver，没有 v6 池时一律返回空应答。所以让 dns.ipv6 同时控制 v6 池，
-  // 这个开关在 fake-ip 下才真正有意义。
-  // 这条必须留在上面的分支外：订阅自带 dns 块时（overrideDns 关闭）整段会被跳过，
-  // 订阅写的 `ipv6: true` 会架空本地开关，把 v6 fake 池交回给订阅决定。
+  // 订阅自带 DNS 且未开启覆盖时，IPv6 开关仍由本地设置决定。只关闭 fake-ip
+  // IPv6 地址池还不够：fake-ip-filter 命中的域名会继续走真实 DNS 解析，
+  // 订阅中的 ipv6: true 仍可能给这些域名返回 AAAA。
+  rawConfig['dns']['ipv6'] = realPatchConfig.dns.ipv6;
+  // fake-ip 中间件在检查 dns.ipv6 之前就会处理 AAAA，因此地址池也要同步关闭。
   rawConfig['dns']['fake-ip-range6'] = realPatchConfig.dns.ipv6
       ? realPatchConfig.dns.fakeIpRange6
       : '';
@@ -288,20 +288,67 @@ Future<VM2<String, String>> _makeRealProfileTask(
     rules = data.rules.map((item) => item.rawValue).toList();
   }
   if (data.proxyGroups.isNotEmpty) {
-    final generatedGroups = rawConfig['proxy-groups'] is List
+    final customGroups = data.proxyGroups.map(_proxyGroupConfig).toList();
+    final customNames = {
+      for (final group in customGroups) group['name']?.toString(),
+    };
+    final effectiveGroups = rawConfig['proxy-groups'] is List
         ? (rawConfig['proxy-groups'] as List)
               .whereType<Map>()
-              .where(
-                (group) =>
-                    group['name']?.toString().startsWith('__avalon_') == true,
-              )
               .map((group) => Map<String, dynamic>.from(group))
+              .where((group) {
+                final name = group['name']?.toString();
+                // The effective assembler may have appended a generated
+                // manual/chain selector to a custom group. Keep that updated
+                // group instead of reconstructing the stale DB row here.
+                return name != null &&
+                    (customNames.contains(name) ||
+                        name.startsWith('__avalon_') ||
+                        name == 'PROXY');
+              })
               .toList()
         : const <Map<String, dynamic>>[];
-    rawConfig['proxy-groups'] = [
-      ...data.proxyGroups.map(_proxyGroupConfig),
-      ...generatedGroups,
+    final effectiveByName = {
+      for (final group in effectiveGroups) group['name'].toString(): group,
+    };
+    final finalGroups = [
+      for (final group in customGroups)
+        effectiveByName[group['name']?.toString()] ?? group,
+      for (final group in effectiveGroups)
+        if (!customNames.contains(group['name']?.toString())) group,
     ];
+    // PROXY is kept because the assembler may materialize it for a MATCH,PROXY
+    // rule.  Guard against it naming groups the custom table replaced, which
+    // the core would reject as "proxy group not found".
+    final proxyGroup = effectiveByName['PROXY'];
+    if (proxyGroup != null && !customNames.contains('PROXY')) {
+      final known = <String>{
+        'DIRECT',
+        'REJECT',
+        'REJECT-DROP',
+        'PASS',
+        'COMPATIBLE',
+        for (final group in finalGroups) group['name'].toString(),
+        if (rawConfig['proxies'] is List)
+          for (final proxy in rawConfig['proxies'] as List)
+            if (proxy is Map && proxy['name'] != null) proxy['name'].toString(),
+      };
+      final members = proxyGroup['proxies'] is List
+          ? (proxyGroup['proxies'] as List)
+                .map((item) => item.toString())
+                .where(known.contains)
+                .toList()
+          : <String>[];
+      final hasProvider =
+          (proxyGroup['use'] is List &&
+              (proxyGroup['use'] as List).isNotEmpty) ||
+          proxyGroup['include-all'] == true ||
+          proxyGroup['include-all-proxies'] == true;
+      proxyGroup['proxies'] = members.isEmpty && !hasProvider
+          ? ['DIRECT']
+          : members;
+    }
+    rawConfig['proxy-groups'] = finalGroups;
   }
   rawConfig['rules'] = rules;
   _ensureGlobalProxyGroup(rawConfig);

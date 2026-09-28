@@ -504,6 +504,7 @@ class EffectiveConfigArtifact {
     required this.chainResults,
     required this.diagnostics,
     this.previewChainIndexes = const {},
+    this.boundProxyNames = const {},
   });
 
   final Map<String, dynamic> config;
@@ -511,6 +512,11 @@ class EffectiveConfigArtifact {
   final List<ChainCompileResult> chainResults;
   final List<ChainDiagnostic> diagnostics;
   final Map<int, int> previewChainIndexes;
+
+  /// Maps a node-library binding id to the name allocated in [config].  The
+  /// allocator may add a suffix when a subscription already owns the same
+  /// display name, so callers must use this map instead of guessing names.
+  final Map<String, String> boundProxyNames;
 
   bool get isValid => diagnostics.every((item) => !item.isError);
 }
@@ -540,6 +546,7 @@ class EffectiveConfigAssembler {
     final proxies = <String, dynamic>{};
     final usedNames = <String>{};
     final referenceNames = <String, String>{};
+    final boundProxyNames = <String, String>{};
     final sourceGroupConfigs = <Map<String, dynamic>>[];
     final sourceGroups = config['proxy-groups'];
     if (sourceGroups is List) {
@@ -603,6 +610,7 @@ class EffectiveConfigAssembler {
       usedNames.add(name);
       copy['name'] = name;
       proxies[name] = copy;
+      boundProxyNames[id] = name;
       referenceNames.putIfAbsent(id, () => name);
       if (originalName != null && originalName.isNotEmpty) {
         referenceNames.putIfAbsent(originalName, () => name);
@@ -667,6 +675,7 @@ class EffectiveConfigAssembler {
       digest: effectiveConfigDigest(config),
       chainResults: List.unmodifiable(chainResults),
       diagnostics: List.unmodifiable(diagnostics),
+      boundProxyNames: Map.unmodifiable(boundProxyNames),
     );
   }
 }

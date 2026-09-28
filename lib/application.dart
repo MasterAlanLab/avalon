@@ -119,6 +119,15 @@ class ApplicationState extends ConsumerState<Application> {
           onConnectivityChanged: (results) async {
             commonPrint.log('connectivityChanged ${results.toString()}');
             ref.read(systemActionProvider.notifier).updateLocalIp();
+            final setupAction = ref.read(setupActionProvider.notifier);
+            final previousIpv6 = Ipv6CapabilityService.instance.available;
+            final currentIpv6 = await setupAction.detectIpv6(force: true);
+            // null: no profile has been built yet, so nothing is stale.
+            if (previousIpv6 != null && previousIpv6 != currentIpv6) {
+              // DNS, fake-ip and TUN inet6 settings are part of the full
+              // profile.  A core update alone cannot refresh those fields.
+              setupAction.applyProfileDebounce(silence: true, force: true);
+            }
             final hasVpn = results.contains(ConnectivityResult.vpn);
             if (_preHasVpn == hasVpn) {
               ref.read(checkIpNumProvider.notifier).add();

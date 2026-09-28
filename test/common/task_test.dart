@@ -230,6 +230,91 @@ void main() {
     },
   );
 
+  test(
+    'makeRealProfileTask keeps effective members appended to custom groups',
+    () async {
+      final result = await makeRealProfileTask(
+        const MakeRealProfileState(
+          profilesPath: '/profiles',
+          profileId: 15,
+          rawConfig: {
+            'proxy-groups': [
+              {
+                'name': 'Select',
+                'type': 'select',
+                'proxies': ['DIRECT', '__avalon_manual_nodes'],
+              },
+            ],
+          },
+          realPatchConfig: PatchClashConfig(),
+          overrideDns: false,
+          appendSystemDns: false,
+          proxyGroups: [
+            ProxyGroup(
+              id: 1,
+              name: 'Select',
+              type: GroupType.Selector,
+              proxies: ['DIRECT'],
+            ),
+          ],
+          rules: [],
+          addedRules: [],
+          defaultUA: 'Fallback-UA',
+        ),
+      );
+      final config = loadYaml(result.a) as YamlMap;
+      final select = (config['proxy-groups'] as YamlList).firstWhere(
+        (item) => item['name'] == 'Select',
+      );
+      expect(select['proxies'], ['DIRECT', '__avalon_manual_nodes']);
+    },
+  );
+
+  test(
+    'makeRealProfileTask drops dangling members from a retained PROXY group',
+    () async {
+      final result = await makeRealProfileTask(
+        const MakeRealProfileState(
+          profilesPath: '/profiles',
+          profileId: 16,
+          rawConfig: {
+            'proxy-groups': [
+              {
+                'name': 'PROXY',
+                'type': 'select',
+                'proxies': ['Replaced', '__avalon_manual_nodes'],
+              },
+              {
+                'name': '__avalon_manual_nodes',
+                'type': 'select',
+                'proxies': ['DIRECT'],
+              },
+            ],
+          },
+          realPatchConfig: PatchClashConfig(),
+          overrideDns: false,
+          appendSystemDns: false,
+          proxyGroups: [
+            ProxyGroup(
+              id: 1,
+              name: 'Select',
+              type: GroupType.Selector,
+              proxies: ['DIRECT'],
+            ),
+          ],
+          rules: [],
+          addedRules: [],
+          defaultUA: 'Fallback-UA',
+        ),
+      );
+      final config = loadYaml(result.a) as YamlMap;
+      final proxy = (config['proxy-groups'] as YamlList).firstWhere(
+        (item) => item['name'] == 'PROXY',
+      );
+      expect(proxy['proxies'], ['__avalon_manual_nodes']);
+    },
+  );
+
   test('makeRealProfileTask adds GLOBAL pointing at PROXY', () async {
     final result = await makeRealProfileTask(
       const MakeRealProfileState(
@@ -406,19 +491,21 @@ void main() {
 
   test('makeRealProfileTask gates the IPv6 fake-ip pool on dns.ipv6', () async {
     final off = await buildRealProfile(const PatchClashConfig());
+    expect(off['dns']['ipv6'], false);
     expect(off['dns']['fake-ip-range6'], '');
 
     final on = await buildRealProfile(
       const PatchClashConfig(dns: Dns(ipv6: true)),
     );
+    expect(on['dns']['ipv6'], true);
     expect(on['dns']['fake-ip-range6'], 'fdfe:dcba:9876::1/64');
   });
 
   test(
     'makeRealProfileTask gates the IPv6 fake-ip pool for profile DNS too',
     () async {
-      // 订阅自带 dns 块且未开启覆盖时，其余键沿用订阅，但 v6 fake 池仍由本地开关
-      // 决定，否则订阅写的 ipv6: true 会架空设置里的 DNS IPv6 开关。
+      // 订阅自带 dns 块且未开启覆盖时，其余键沿用订阅，但实际 AAAA 解析和
+      // v6 fake 池都由本地开关决定。fake-ip-filter 命中的域名会绕过 fake 池。
       const profileDns = {
         'dns': {
           'enable': true,
@@ -435,6 +522,7 @@ void main() {
         overrideDns: false,
       );
       expect(off['dns']['nameserver'], ['223.5.5.5']);
+      expect(off['dns']['ipv6'], false);
       expect(off['dns']['fake-ip-range6'], '');
 
       final on = await buildRealProfile(
@@ -442,6 +530,7 @@ void main() {
         rawConfig: profileDns,
         overrideDns: false,
       );
+      expect(on['dns']['ipv6'], true);
       expect(on['dns']['fake-ip-range6'], 'fdfe:dcba:9876::1/64');
     },
   );

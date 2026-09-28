@@ -326,12 +326,17 @@ class SetupAction extends _$SetupAction {
         await _restartCoreAfterAuthorization();
         return;
       }
-      final effectiveTunEnable = _getEffectiveTunEnable(updateParams.tun.enable);
+      final ipv6Available = await detectIpv6();
+      final effectiveTunEnable = _getEffectiveTunEnable(
+        updateParams.tun.enable,
+      );
       // 与 makeRealProfileTask 保持一致：不接管 IPv6 时不下发 inet6-address，
       // 也不替用户打开全局 ipv6。
-      final tunTakesIpv6 = _tunTakesIpv6(
-        updateParams.tun.copyWith(enable: effectiveTunEnable),
-      );
+      final tunTakesIpv6 =
+          _tunTakesIpv6(
+            updateParams.tun.copyWith(enable: effectiveTunEnable),
+          ) &&
+          ipv6Available;
       final message = await coreController.updateConfig(
         updateParams.copyWith(
           tun: updateParams.tun.copyWith(
@@ -340,7 +345,7 @@ class SetupAction extends _$SetupAction {
                 ? updateParams.tun.inet6Address
                 : const [],
           ),
-          ipv6: updateParams.ipv6 || tunTakesIpv6,
+          ipv6: (updateParams.ipv6 || tunTakesIpv6) && ipv6Available,
         ),
       );
       ref.read(checkIpNumProvider.notifier).add();
@@ -447,7 +452,8 @@ class SetupAction extends _$SetupAction {
       ),
     );
     final overrideDns = ref.read(overrideDnsProvider);
-    final tunTakesIpv6 = _tunTakesIpv6(patchConfig.tun);
+    final ipv6Available = await detectIpv6();
+    final tunTakesIpv6 = _tunTakesIpv6(patchConfig.tun) && ipv6Available;
     final appendSystemDns = networkVM2.a;
     final routeMode = networkVM2.b;
     final configMap = await coreController.getConfig(profileId);
@@ -463,8 +469,12 @@ class SetupAction extends _$SetupAction {
       proxyGroups.addAll(setupState.proxyGroups);
       rules.addAll(setupState.rules);
     }
-    final realPatchConfig = patchConfig.copyWith(
-      tun: patchConfig.tun.getRealTun(routeMode),
+    final effectivePatchConfig = _applyIpv6Capability(
+      patchConfig,
+      ipv6Available: ipv6Available,
+    );
+    final realPatchConfig = effectivePatchConfig.copyWith(
+      tun: effectivePatchConfig.tun.getRealTun(routeMode),
     );
     Map<String, dynamic> rawConfig = configMap;
     if (scriptContent?.isNotEmpty == true) {
@@ -476,8 +486,27 @@ class SetupAction extends _$SetupAction {
             .map(_proxyGroupConfig)
             .toList(growable: false);
     }
+    // The effective assembler must see the same rule ownership that the final
+    // profile writer will use.  Otherwise a custom overwrite would attach
+    // manual nodes/chains to a subscription MATCH group and then replace the
+    // rules afterward, leaving those outbounds unreachable.
+    // An empty custom rule table means "keep the profile's rules" in
+    // makeRealProfileTask, so leave the source rules in place for it.
+    final customRules =
+        setupState.overwriteType == OverwriteType.custom && rules.isNotEmpty;
+    if (customRules) {
+      rawConfig = Map<String, dynamic>.from(
+        rawConfig,
+      )..['rules'] = rules.map((item) => item.rawValue).toList(growable: false);
+    }
     final effectiveArtifact = await const ProfileEffectiveConfigService()
-        .assemble(profileId: profileId, profileConfig: rawConfig);
+        .assemble(
+          profileId: profileId,
+          profileConfig: rawConfig,
+          isSubscriptionProfile:
+              ref.read(profileProvider(profileId))?.url.isNotEmpty == true,
+          ipv6Available: ipv6Available,
+        );
     final chainErrors = effectiveArtifact.diagnostics
         .where((item) => item.isError)
         .toList();
@@ -493,10 +522,18 @@ class SetupAction extends _$SetupAction {
       );
     }
     rawConfig = effectiveArtifact.config;
+    // makeRealProfileTask normally takes the custom rule table as the final
+    // source of truth.  The effective assembler may have added a deterministic
+    // MATCH rule (for example to expose a manually bound node group), so feed
+    // that final rule graph back into the writer.  Otherwise the generated
+    // group would exist in `proxy-groups` but no rule could ever select it.
+    final effectiveRules = customRules
+        ? _parseEffectiveRules(effectiveArtifact.config['rules'])
+        : rules;
     final directory = await appPath.profilesPath;
     final res = makeRealProfileTask(
       MakeRealProfileState(
-        rules: rules,
+        rules: effectiveRules,
         proxyGroups: proxyGroups,
         profilesPath: directory,
         profileId: profileId,
@@ -510,6 +547,14 @@ class SetupAction extends _$SetupAction {
       ),
     );
     return res;
+  }
+
+  List<Rule> _parseEffectiveRules(dynamic value) {
+    if (value is! List) return const [];
+    return [
+      for (final item in value)
+        if (item.toString().trim().isNotEmpty) Rule.parse(item.toString()),
+    ];
   }
 
   Future<String> getProfileWithId(int profileId) async {
@@ -530,6 +575,34 @@ class SetupAction extends _$SetupAction {
   bool _getEffectiveTunEnable(bool enableTun) {
     final authorizationState = ref.read(authorizedTunEnableProvider);
     return enableTun && authorizationState == TunAuthorizationState.authorized;
+  }
+
+  /// IPv6 capability of the physical network.  Once Avalon's TUN carries
+  /// IPv6, a socket probe is answered by the TUN stack itself, so the service
+  /// is told to reuse its last physical result instead of probing.
+  Future<bool> detectIpv6({bool force = false}) {
+    final service = Ipv6CapabilityService.instance;
+    final tun = ref.read(patchClashConfigProvider).tun;
+    final tunCapturesIpv6 =
+        ref.read(isStartProvider) &&
+        service.available == true &&
+        _tunTakesIpv6(
+          tun.copyWith(enable: _getEffectiveTunEnable(tun.enable)),
+        );
+    return service.detect(force: force, tunCapturesIpv6: tunCapturesIpv6);
+  }
+
+  PatchClashConfig _applyIpv6Capability(
+    PatchClashConfig config, {
+    required bool ipv6Available,
+  }) {
+    final dns = config.dns.copyWith(
+      ipv6: config.dns.ipv6 && ipv6Available,
+      fakeIpRange6: config.dns.ipv6 && ipv6Available
+          ? config.dns.fakeIpRange6
+          : '',
+    );
+    return config.copyWith(ipv6: config.ipv6 && ipv6Available, dns: dns);
   }
 
   /// 虚拟网卡是否接管 IPv6。

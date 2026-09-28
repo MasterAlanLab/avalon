@@ -82,7 +82,9 @@ void main() {
     expect(artifact.isValid, isTrue);
     expect(artifact.chainResults.single.paths, hasLength(1));
     expect(artifact.config['proxies'], hasLength(2));
-    expect(artifact.config['proxy-groups'], hasLength(4));
+    // The unconfigured default chain is exposed through the generated default
+    // outbound group so it is reachable from the rule graph.
+    expect(artifact.config['proxy-groups'], hasLength(5));
   });
 
   test('normalizes map-form profile proxies before assembly', () async {
@@ -112,6 +114,250 @@ void main() {
       },
     ]);
   });
+
+  test('generates a reachable IPv4 manual outbound policy', () async {
+    const node = ProxyNode(
+      id: 500,
+      displayName: 'Manual',
+      type: 'socks5',
+      config: {
+        'name': 'Manual',
+        'type': 'socks5',
+        'server': 'manual.example.com',
+        'port': 443,
+      },
+      fingerprint: 'manual-policy',
+    );
+    await store.restore(
+      const [],
+      const [],
+      const [],
+      const [],
+      const [],
+      proxyNodes: const [node],
+      proxyNodeBindings: const [ProxyNodeBinding(profileId: 1, nodeId: 500)],
+    );
+
+    final artifact =
+        await ProfileEffectiveConfigService(
+          store: store,
+          nodeStorePath: Directory.systemTemp.path,
+        ).assemble(
+          profileId: 1,
+          profileConfig: const {'proxies': []},
+          ipv6Available: false,
+        );
+
+    final groups = (artifact.config['proxy-groups'] as List).cast<Map>();
+    final groupNames = groups.map((group) => group['name']).toSet();
+    expect(groupNames, contains('__avalon_manual_nodes'));
+    expect(groupNames, contains('__avalon_default'));
+    expect(
+      (artifact.config['rules'] as List),
+      contains('GEOIP,CN,DIRECT,no-resolve'),
+    );
+    expect(
+      (artifact.config['rules'] as List),
+      contains('GEOIP,private,DIRECT,no-resolve'),
+    );
+    final manual = (artifact.config['proxies'] as List).cast<Map>().singleWhere(
+      (proxy) => proxy['name'] == 'Manual',
+    );
+    expect(manual['ip-version'], 'ipv4');
+    expect((artifact.config['dns'] as Map)['direct-nameserver'], isNotEmpty);
+  });
+
+  test('reports an IPv6-only manual outbound on an IPv4-only host', () async {
+    const node = ProxyNode(
+      id: 501,
+      displayName: 'IPv6 Manual',
+      type: 'socks5',
+      config: {
+        'name': 'IPv6 Manual',
+        'type': 'socks5',
+        'server': '2001:db8::10',
+        'port': 443,
+      },
+      fingerprint: 'manual-ipv6',
+    );
+    await store.restore(
+      const [],
+      const [],
+      const [],
+      const [],
+      const [],
+      proxyNodes: const [node],
+      proxyNodeBindings: const [ProxyNodeBinding(profileId: 1, nodeId: 501)],
+    );
+
+    final artifact =
+        await ProfileEffectiveConfigService(
+          store: store,
+          nodeStorePath: Directory.systemTemp.path,
+        ).assemble(
+          profileId: 1,
+          profileConfig: const {'proxies': []},
+          ipv6Available: false,
+        );
+
+    // A warning, not an error: one unusable node must not block the profile.
+    expect(artifact.isValid, isTrue);
+    final diagnostic = artifact.diagnostics.singleWhere(
+      (item) => item.code == 'ipv6-only-node-on-ipv4-host',
+    );
+    expect(diagnostic.isError, isFalse);
+  });
+
+  test('keeps a MATCH,DIRECT subscription loadable with a manual node', () async {
+    const node = ProxyNode(
+      id: 503,
+      displayName: 'Direct Manual',
+      type: 'socks5',
+      config: {
+        'name': 'Direct Manual',
+        'type': 'socks5',
+        'server': 'manual.example.com',
+        'port': 443,
+      },
+      fingerprint: 'direct-manual',
+    );
+    await store.restore(
+      const [],
+      const [],
+      const [],
+      const [],
+      const [],
+      proxyNodes: const [node],
+      proxyNodeBindings: const [ProxyNodeBinding(profileId: 1, nodeId: 503)],
+    );
+
+    final artifact =
+        await ProfileEffectiveConfigService(
+          store: store,
+          nodeStorePath: Directory.systemTemp.path,
+        ).assemble(
+          profileId: 1,
+          isSubscriptionProfile: true,
+          ipv6Available: false,
+          profileConfig: const {
+            'proxies': <Map<String, Object?>>[],
+            'rules': ['DOMAIN,example.com,DIRECT', 'MATCH,DIRECT'],
+          },
+        );
+
+    expect(artifact.isValid, isTrue);
+    expect(
+      artifact.diagnostics.map((item) => item.code),
+      contains('unattached-manual-routing'),
+    );
+    expect(artifact.config['rules'], ['DOMAIN,example.com,DIRECT', 'MATCH,DIRECT']);
+  });
+
+  test('reads the outbound of a logical rule at the top level', () async {
+    const node = ProxyNode(
+      id: 504,
+      displayName: 'Logical Manual',
+      type: 'socks5',
+      config: {
+        'name': 'Logical Manual',
+        'type': 'socks5',
+        'server': 'manual.example.com',
+        'port': 443,
+      },
+      fingerprint: 'logical-manual',
+    );
+    await store.restore(
+      const [],
+      const [],
+      const [],
+      const [],
+      const [],
+      proxyNodes: const [node],
+      proxyNodeBindings: const [ProxyNodeBinding(profileId: 1, nodeId: 504)],
+    );
+
+    final artifact =
+        await ProfileEffectiveConfigService(
+          store: store,
+          nodeStorePath: Directory.systemTemp.path,
+        ).assemble(
+          profileId: 1,
+          isSubscriptionProfile: true,
+          ipv6Available: false,
+          profileConfig: const {
+            'proxies': <Map<String, Object?>>[],
+            'proxy-groups': [
+              {
+                'name': 'Manual',
+                'type': 'select',
+                'proxies': ['Logical Manual'],
+              },
+              {'name': 'PROXY', 'type': 'select', 'proxies': ['DIRECT']},
+            ],
+            'rules': [
+              'AND,((DOMAIN,a.com),(NETWORK,UDP)),Manual',
+              'MATCH,PROXY',
+            ],
+          },
+        );
+
+    // Manual is reachable through the logical rule, so nothing is appended.
+    final proxy = (artifact.config['proxy-groups'] as List)
+        .cast<Map>()
+        .singleWhere((group) => group['name'] == 'PROXY');
+    expect(proxy['proxies'], ['DIRECT']);
+  });
+
+  test(
+    'preserves subscription rules while attaching a manual node group',
+    () async {
+      const node = ProxyNode(
+        id: 502,
+        displayName: 'Subscription Manual',
+        type: 'socks5',
+        config: {
+          'name': 'Subscription Manual',
+          'type': 'socks5',
+          'server': 'manual.example.com',
+          'port': 443,
+        },
+        fingerprint: 'subscription-manual',
+      );
+      await store.restore(
+        const [],
+        const [],
+        const [],
+        const [],
+        const [],
+        proxyNodes: const [node],
+        proxyNodeBindings: const [ProxyNodeBinding(profileId: 1, nodeId: 502)],
+      );
+
+      final artifact =
+          await ProfileEffectiveConfigService(
+            store: store,
+            nodeStorePath: Directory.systemTemp.path,
+          ).assemble(
+            profileId: 1,
+            isSubscriptionProfile: true,
+            ipv6Available: false,
+            profileConfig: const {
+              'proxies': <Map<String, Object?>>[],
+              'proxy-groups': [
+                {'name': 'PROXY', 'type': 'select', 'proxies': <String>[]},
+              ],
+              'rules': ['DOMAIN,cn,DIRECT', 'MATCH,PROXY'],
+            },
+          );
+
+      expect(artifact.isValid, isTrue);
+      expect(artifact.config['rules'], ['DOMAIN,cn,DIRECT', 'MATCH,PROXY']);
+      final proxyGroup = (artifact.config['proxy-groups'] as List)
+          .cast<Map>()
+          .singleWhere((group) => group['name'] == 'PROXY');
+      expect(proxyGroup['proxies'], contains('__avalon_manual_nodes'));
+    },
+  );
 
   test('leaves an explicit udp flag on profile proxies alone', () async {
     final artifact =
@@ -358,11 +604,14 @@ void main() {
       return (group['proxies'] as List).map((item) => item.toString()).toList();
     }
 
-    test('leaves the rule entry untouched without an entry group', () async {
-      await seed();
-      final artifact = await assemble();
-      expect(membersOf(artifact, 'G'), ['Source']);
-    });
+    test(
+      'connects an unconfigured chain to the effective MATCH group',
+      () async {
+        await seed();
+        final artifact = await assemble();
+        expect(membersOf(artifact, 'G'), ['Source', '__avalon_chains']);
+      },
+    );
 
     test('adds the chain selector to the selected entry group', () async {
       await seed(entryGroups: const ['G']);

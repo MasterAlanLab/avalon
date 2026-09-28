@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:avalon/common/common.dart';
 import 'package:avalon/database/database.dart';
 import 'package:avalon/models/models.dart';
@@ -63,6 +65,8 @@ class ProfileEffectiveConfigService {
     required Map<String, dynamic> profileConfig,
     Map<int, List<ProxyChainHop>> chainHopOverrides = const {},
     Set<int> previewChainIds = const {},
+    bool isSubscriptionProfile = false,
+    bool? ipv6Available,
   }) async {
     final diagnostics = <ChainDiagnostic>[];
     final allNodes = await store.proxyNodesDao.query().get();
@@ -161,6 +165,35 @@ class ProfileEffectiveConfigService {
           configName != null &&
           configName.isNotEmpty) {
         nodeByDisplayName[configName] = id;
+      }
+    }
+
+    if (ipv6Available == false) {
+      for (final node in allNodes) {
+        if (node.source != null) continue;
+        final id = node.id.toString();
+        final config = nodeConfigs[id];
+        if (config == null ||
+            config['ip-version']?.toString().isNotEmpty == true) {
+          continue;
+        }
+        final server = config['server']?.toString().trim();
+        if (_isIpv6Literal(server)) {
+          diagnostics.add(
+            ChainDiagnostic(
+              severity: ChainDiagnosticSeverity.warning,
+              code: 'ipv6-only-node-on-ipv4-host',
+              message:
+                  'A manually added node uses an IPv6 server address, but this host has no usable IPv6 route. The node is kept but will not connect until IPv6 is available.',
+              path: id,
+            ),
+          );
+        } else {
+          // Keep explicit user choices untouched.  For an implicit dual-stack
+          // node, prefer IPv4 so an unreachable AAAA record cannot delay every
+          // connection on an IPv4-only host.
+          config['ip-version'] = 'ipv4';
+        }
       }
     }
 
@@ -394,20 +427,33 @@ class ProfileEffectiveConfigService {
     );
     final finalConfig = _copyMap(artifact.config);
     final generatedSelectors = <String>[];
+    final routableChainSelectors = <String>[];
+    final orphanChainSelectors = <String>[];
     for (var index = 0; index < artifact.chainResults.length; index++) {
       final result = artifact.chainResults[index];
       if (!result.isValid || result.generatedGroups.isEmpty) continue;
       final selectorName = result.generatedGroups.first.name;
       generatedSelectors.add(selectorName);
       if (index >= compiledBindings.length) continue;
+      final binding = compiledBindings[index];
       diagnostics.addAll(
         _attachChainEntry(
           config: finalConfig,
-          entryGroups: compiledBindings[index].entryGroups,
+          entryGroups: binding.entryGroups,
           selectorName: selectorName,
         ),
       );
+      final hasUsableEntryGroup = binding.entryGroups.any(
+        (name) => _hasGroup(finalConfig, name),
+      );
+      if (binding.entryGroups.isEmpty) {
+        orphanChainSelectors.add(selectorName);
+        routableChainSelectors.add(selectorName);
+      } else if (hasUsableEntryGroup) {
+        routableChainSelectors.add(selectorName);
+      }
     }
+    String? aggregateName;
     if (generatedSelectors.isNotEmpty) {
       final groups = finalConfig['proxy-groups'] is List
           ? List<dynamic>.from(finalConfig['proxy-groups'] as List)
@@ -416,24 +462,75 @@ class ProfileEffectiveConfigService {
         for (final group in groups)
           if (group is Map && group['name'] != null) group['name'].toString(),
       };
-      final aggregateName = _allocateName('__avalon_chains', usedNames);
+      aggregateName = _allocateName('__avalon_chains', usedNames);
       groups.add({
         'name': aggregateName,
         'type': 'select',
-        'proxies': generatedSelectors,
+        // A selector whose configured entry group is missing must remain
+        // diagnostic-only. Do not make it reachable through another chain's
+        // aggregate when several bindings are compiled together.
+        'proxies': routableChainSelectors.isEmpty
+            ? generatedSelectors
+            : routableChainSelectors,
       });
       finalConfig['proxy-groups'] = groups;
     }
+    diagnostics.addAll(
+      _ensureManualRouting(
+        config: finalConfig,
+        boundProxyNames: artifact.boundProxyNames.values.toSet(),
+        aggregateChainName: aggregateName,
+        orphanChainSelectors: orphanChainSelectors,
+        chainSelectors: routableChainSelectors,
+        isSubscriptionProfile: isSubscriptionProfile,
+      ),
+    );
+    if (!isSubscriptionProfile) _ensureManualDns(finalConfig);
     return EffectiveConfigArtifact(
       config: finalConfig,
       digest: effectiveConfigDigest(finalConfig),
       chainResults: artifact.chainResults,
       diagnostics: [...diagnostics, ...artifact.diagnostics],
+      boundProxyNames: artifact.boundProxyNames,
       previewChainIndexes: {
         for (var index = 0; index < compiledBindings.length; index++)
           compiledBindings[index].chainId: index,
       },
     );
+  }
+
+  void _ensureManualDns(Map<String, dynamic> config) {
+    final dns = config['dns'] is Map
+        ? Map<String, dynamic>.from(config['dns'] as Map)
+        : <String, dynamic>{};
+    // A `#group` suffix sends the query through a proxy group, which would
+    // make resolving the proxy server itself depend on that proxy.
+    final bootstrap = <String>[
+      ..._dnsServers(dns['default-nameserver']),
+      ..._dnsServers(dns['nameserver']),
+      '223.5.5.5',
+    ].firstWhere(
+      (item) => item.isNotEmpty && !item.contains('#'),
+      orElse: () => '223.5.5.5',
+    );
+    // Keep user or profile-provided values.  These fallbacks make the two DNS
+    // paths explicit for hand-built profiles and prevent node endpoint lookup
+    // from accidentally depending on the destination's proxy rule.
+    dns.putIfAbsent('proxy-server-nameserver', () => [bootstrap]);
+    dns.putIfAbsent('direct-nameserver', () => [bootstrap]);
+    dns.putIfAbsent('direct-nameserver-follow-policy', () => true);
+    config['dns'] = dns;
+  }
+
+  List<String> _dnsServers(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) return [value.trim()];
+    if (value is List) {
+      return [
+        for (final item in value)
+          if (item.toString().trim().isNotEmpty) item.toString().trim(),
+      ];
+    }
+    return const [];
   }
 
   Future<Map<String, List<ChainTarget>>> _collectGroups({
@@ -607,6 +704,369 @@ class ProfileEffectiveConfigService {
     }
     return null;
   }
+}
+
+/// Mainland-direct/other-proxy policy for a hand-built profile without rules.
+/// `GEOSITE,private` only covers domains; `GEOIP,private` keeps LAN and other
+/// reserved IP literals (192.168.x.x, 10.x, fd00::/8 ...) off the proxy.
+const _defaultSplitRules = [
+  'DOMAIN,localhost,DIRECT',
+  'GEOSITE,private,DIRECT',
+  'GEOIP,private,DIRECT,no-resolve',
+  'GEOSITE,cn,DIRECT',
+  'GEOIP,CN,DIRECT,no-resolve',
+];
+
+/// Connects node-library bindings and chains to the rule graph.
+///
+/// A bound node is not usable merely because it is present in `proxies`; it
+/// must be reachable from a rule target through one or more proxy groups.
+/// This function adds a namespaced group for unreferenced manual nodes and
+/// connects it, together with unconfigured chains, to the profile's effective
+/// MATCH group.  A profile with no source rules receives a deterministic
+/// mainland-direct/other-proxy policy.
+List<ChainDiagnostic> _ensureManualRouting({
+  required Map<String, dynamic> config,
+  required Set<String> boundProxyNames,
+  required String? aggregateChainName,
+  required List<String> orphanChainSelectors,
+  required List<String> chainSelectors,
+  required bool isSubscriptionProfile,
+}) {
+  final diagnostics = <ChainDiagnostic>[];
+  final rawGroups = config['proxy-groups'];
+  final groups = rawGroups is List
+      ? [
+          for (final raw in rawGroups)
+            if (raw is Map) _copyMap(raw),
+        ]
+      : <Map<String, dynamic>>[];
+  final groupByName = <String, Map<String, dynamic>>{
+    for (final group in groups)
+      if (group['name']?.toString().trim().isNotEmpty == true)
+        group['name'].toString().trim(): group,
+  };
+  final proxyNames = <String>{
+    for (final raw
+        in (config['proxies'] is List
+            ? config['proxies'] as List
+            : const <dynamic>[]))
+      if (raw is Map && raw['name']?.toString().trim().isNotEmpty == true)
+        raw['name'].toString().trim(),
+  };
+  final rules = config['rules'] is List
+      ? List<String>.from(
+          (config['rules'] as List).map((item) => item.toString()),
+        )
+      : <String>[];
+
+  final reachable = _reachableOutboundNames(
+    groups: groupByName,
+    proxyNames: proxyNames,
+    rules: rules,
+  );
+  final groupReferenced = _groupReferencedProxyNames(
+    groups: groupByName,
+    proxyNames: proxyNames,
+  );
+  final reachableGroups = _reachableGroupNames(
+    groups: groupByName,
+    rules: rules,
+  );
+  final currentlyUsable = rules.isEmpty ? groupReferenced : reachable;
+  final unreferencedManual =
+      boundProxyNames.where((name) => !currentlyUsable.contains(name)).toList()
+        ..sort();
+
+  final usedNames = <String>{...proxyNames, ...groupByName.keys};
+  String? manualGroupName;
+  if (unreferencedManual.isNotEmpty) {
+    manualGroupName = _allocateName('__avalon_manual_nodes', usedNames);
+    usedNames.add(manualGroupName);
+    final group = <String, dynamic>{
+      'name': manualGroupName,
+      'type': 'select',
+      'proxies': unreferencedManual,
+    };
+    groups.add(group);
+    groupByName[manualGroupName] = group;
+  }
+
+  final additions = <String>[
+    if (manualGroupName != null) manualGroupName,
+    if (aggregateChainName != null &&
+        (orphanChainSelectors.isNotEmpty ||
+            chainSelectors.any(
+              (selector) =>
+                  !reachableGroups.contains(selector) || rules.isEmpty,
+            )))
+      aggregateChainName,
+  ];
+  if (additions.isEmpty) {
+    if (!isSubscriptionProfile && rules.isEmpty && boundProxyNames.isNotEmpty) {
+      final existingTarget = _firstGroupContaining(groups, boundProxyNames);
+      if (existingTarget != null) {
+        rules.addAll(_defaultSplitRules);
+        rules.add('MATCH,$existingTarget');
+      }
+    }
+    config['proxy-groups'] = groups;
+    config['rules'] = rules;
+    return diagnostics;
+  }
+
+  final matchTarget = _lastMatchTarget(rules);
+  final matchGroup = matchTarget == null ? null : groupByName[matchTarget];
+  if (matchGroup != null) {
+    _appendGroupMembers(matchGroup, additions);
+    config['proxy-groups'] = groups;
+    config['rules'] = rules;
+    return diagnostics;
+  }
+
+  // A number of lightweight subscriptions use MATCH,PROXY without declaring
+  // the selector explicitly.  Materialize that target rather than leaving a
+  // manually added node or chain dangling.  The source proxies remain
+  // members, so the subscription's default outbound is preserved.
+  if (matchTarget == 'PROXY' || matchTarget == 'GLOBAL') {
+    final members = <String>[...proxyNames, ...additions];
+    final group = <String, dynamic>{
+      'name': matchTarget,
+      'type': 'select',
+      'proxies': members.toSet().toList(),
+    };
+    groups.add(group);
+    groupByName[matchTarget!] = group;
+    config['proxy-groups'] = groups;
+    config['rules'] = rules;
+    return diagnostics;
+  }
+
+  if (isSubscriptionProfile) {
+    diagnostics.add(
+      ChainDiagnostic(
+        // A rule graph that cannot take the manual outbound (e.g. MATCH,DIRECT)
+        // must not stop the whole profile from loading.
+        severity: ChainDiagnosticSeverity.warning,
+        code: 'unattached-manual-routing',
+        message:
+            'Manual nodes or chains cannot be connected without a subscription proxy group targeted by MATCH.',
+        path: matchTarget,
+      ),
+    );
+    config['proxy-groups'] = groups;
+    config['rules'] = rules;
+    return diagnostics;
+  }
+
+  // A hand-built profile with no rules gets an explicit split policy.  If the
+  // user already supplied rules, preserve them and only add a final MATCH
+  // when no outbound target exists.
+  final hasMatch = rules.any(_isMatchRule);
+  if (rules.isEmpty || !hasMatch) {
+    final existingManualGroup = _firstGroupContaining(groups, boundProxyNames);
+    final defaultEntries = <String>[
+      ...additions,
+      if (existingManualGroup != null &&
+          !additions.contains(existingManualGroup))
+        existingManualGroup,
+    ];
+    final defaultGroupName = _allocateName('__avalon_default', usedNames);
+    usedNames.add(defaultGroupName);
+    final group = <String, dynamic>{
+      'name': defaultGroupName,
+      'type': 'select',
+      'proxies': defaultEntries,
+    };
+    groups.add(group);
+    groupByName[defaultGroupName] = group;
+    if (rules.isEmpty) {
+      rules.addAll(_defaultSplitRules);
+    }
+    rules.add('MATCH,$defaultGroupName');
+  } else {
+    diagnostics.add(
+      ChainDiagnostic(
+        // A rule graph that cannot take the manual outbound (e.g. MATCH,DIRECT)
+        // must not stop the whole profile from loading.
+        severity: ChainDiagnosticSeverity.warning,
+        code: 'unattached-manual-routing',
+        message:
+            'Manual nodes or chains cannot be connected to the existing rule graph.',
+        path: matchTarget,
+      ),
+    );
+  }
+
+  config['proxy-groups'] = groups;
+  config['rules'] = rules;
+  return diagnostics;
+}
+
+void _appendGroupMembers(Map<String, dynamic> group, Iterable<String> names) {
+  final members = group['proxies'] is List
+      ? List<dynamic>.from(group['proxies'] as List)
+      : <dynamic>[];
+  for (final name in names) {
+    if (!members.any((item) => item.toString() == name)) members.add(name);
+  }
+  group['proxies'] = members;
+}
+
+String? _lastMatchTarget(List<String> rules) {
+  for (var index = rules.length - 1; index >= 0; index--) {
+    if (!_isMatchRule(rules[index])) continue;
+    final target = _ruleTarget(rules[index]);
+    if (target != null) return target;
+  }
+  return null;
+}
+
+bool _isMatchRule(String rule) =>
+    _splitRule(rule).firstOrNull?.toUpperCase() == 'MATCH';
+
+/// Outbound named by [rule], or null when it has none (SUB-RULE names a
+/// sub-rule set, not an outbound).
+String? _ruleTarget(String rule) {
+  final parts = _splitRule(rule);
+  if (parts.length < 2) return null;
+  final action = parts.first.toUpperCase();
+  if (action == 'SUB-RULE') return null;
+  final target = action == 'MATCH'
+      ? parts[1]
+      : parts.length >= 3
+      ? parts[2]
+      : null;
+  return target == null || target.isEmpty ? null : target;
+}
+
+/// Splits a rule on top-level commas only, so logical rules such as
+/// `AND,((DOMAIN,a.com),(NETWORK,UDP)),Proxy` keep their payload intact.
+List<String> _splitRule(String rule) {
+  final parts = <String>[];
+  var depth = 0;
+  var start = 0;
+  for (var index = 0; index < rule.length; index++) {
+    final char = rule[index];
+    if (char == '(') {
+      depth++;
+    } else if (char == ')') {
+      if (depth > 0) depth--;
+    } else if (char == ',' && depth == 0) {
+      parts.add(rule.substring(start, index).trim());
+      start = index + 1;
+    }
+  }
+  parts.add(rule.substring(start).trim());
+  return parts;
+}
+
+bool _isIpv6Literal(String? value) {
+  if (value == null || value.isEmpty) return false;
+  var host = value;
+  if (host.startsWith('[') && host.contains(']')) {
+    host = host.substring(1, host.indexOf(']'));
+  }
+  final zone = host.indexOf('%');
+  if (zone != -1) host = host.substring(0, zone);
+  final address = InternetAddress.tryParse(host);
+  return address?.type == InternetAddressType.IPv6;
+}
+
+Set<String> _reachableOutboundNames({
+  required Map<String, Map<String, dynamic>> groups,
+  required Set<String> proxyNames,
+  required List<String> rules,
+}) {
+  final reachable = <String>{};
+  final visiting = <String>{};
+  void visit(String name) {
+    if (proxyNames.contains(name)) {
+      reachable.add(name);
+      return;
+    }
+    final group = groups[name];
+    if (group == null || !visiting.add(name)) return;
+    final members = group['proxies'];
+    if (members is List) {
+      for (final member in members) visit(member.toString().trim());
+    }
+    visiting.remove(name);
+  }
+
+  for (final rule in rules) {
+    final target = _ruleTarget(rule);
+    if (target != null) visit(target);
+  }
+  return reachable;
+}
+
+Set<String> _reachableGroupNames({
+  required Map<String, Map<String, dynamic>> groups,
+  required List<String> rules,
+}) {
+  final reachable = <String>{};
+  final visiting = <String>{};
+  void visit(String name) {
+    final group = groups[name];
+    if (group == null || !visiting.add(name)) return;
+    reachable.add(name);
+    final members = group['proxies'];
+    if (members is List) {
+      for (final member in members) visit(member.toString().trim());
+    }
+    visiting.remove(name);
+  }
+
+  for (final rule in rules) {
+    final target = _ruleTarget(rule);
+    if (target != null) visit(target);
+  }
+  return reachable;
+}
+
+Set<String> _groupReferencedProxyNames({
+  required Map<String, Map<String, dynamic>> groups,
+  required Set<String> proxyNames,
+}) {
+  final result = <String>{};
+  for (final group in groups.values) {
+    final members = group['proxies'];
+    if (members is List) {
+      for (final member in members) {
+        final name = member.toString().trim();
+        if (proxyNames.contains(name)) result.add(name);
+      }
+    }
+  }
+  return result;
+}
+
+String? _firstGroupContaining(
+  List<Map<String, dynamic>> groups,
+  Set<String> proxyNames,
+) {
+  for (final group in groups) {
+    final members = group['proxies'];
+    if (members is List &&
+        members.any(
+          (member) => proxyNames.contains(member.toString().trim()),
+        )) {
+      final name = group['name']?.toString().trim();
+      if (name != null && name.isNotEmpty) return name;
+    }
+  }
+  return null;
+}
+
+bool _hasGroup(Map<String, dynamic> config, String name) {
+  final groups = config['proxy-groups'];
+  if (groups is! List) return false;
+  final wanted = name.trim();
+  if (wanted.isEmpty) return false;
+  return groups.any(
+    (group) => group is Map && group['name']?.toString().trim() == wanted,
+  );
 }
 
 List<ChainDiagnostic> _attachChainEntry({
