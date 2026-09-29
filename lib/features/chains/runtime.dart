@@ -1085,16 +1085,6 @@ String? _firstGroupContaining(
   return null;
 }
 
-bool _hasGroup(Map<String, dynamic> config, String name) {
-  final groups = config['proxy-groups'];
-  if (groups is! List) return false;
-  final wanted = name.trim();
-  if (wanted.isEmpty) return false;
-  return groups.any(
-    (group) => group is Map && group['name']?.toString().trim() == wanted,
-  );
-}
-
 List<ChainDiagnostic> _attachChainEntry({
   required Map<String, dynamic> config,
   required List<String> entryGroups,
