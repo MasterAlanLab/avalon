@@ -162,6 +162,10 @@ void main() {
     final groupNames = groups.map((group) => group['name']).toSet();
     expect(groupNames, contains('__avalon_manual_nodes'));
     expect(groupNames, contains('PROXY'));
+    final manualGroup = groups.singleWhere(
+      (group) => group['name'] == '__avalon_manual_nodes',
+    );
+    expect(manualGroup['hidden'], isTrue);
     final rules = (artifact.config['rules'] as List).cast<String>();
     expect(rules, contains('GEOIP,CN,DIRECT,no-resolve'));
     expect(rules, contains('GEOIP,private,DIRECT,no-resolve'));

@@ -812,6 +812,10 @@ List<ChainDiagnostic> _ensureManualRouting({
     final group = <String, dynamic>{
       'name': manualGroupName,
       'type': 'select',
+      // This group is an internal fallback for bound nodes that are not
+      // otherwise reachable. Keep it in the config graph so parent groups can
+      // still route through it, but do not expose it as a user-facing tab.
+      'hidden': true,
       'proxies': unreferencedManual,
     };
     groups.add(group);
