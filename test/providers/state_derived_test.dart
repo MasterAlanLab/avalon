@@ -47,7 +47,13 @@ void main() {
     container
         .read(patchClashConfigProvider.notifier)
         .update((state) => state.copyWith(mode: Mode.global));
-    expect(container.read(currentGroupsStateProvider).value, hasLength(3));
+    expect(
+      container
+          .read(currentGroupsStateProvider)
+          .value
+          .map((group) => group.name),
+      ['Visible', GroupName.GLOBAL.name],
+    );
 
     container
         .read(patchClashConfigProvider.notifier)
