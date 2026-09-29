@@ -30,12 +30,16 @@ GroupsState currentGroupsState(Ref ref) {
       }),
     ),
   );
+  // Internal groups such as the chain fallback aggregate are valid mihomo
+  // groups, but they are implementation details and should not become user
+  // selectable tabs in either rule or global mode.
+  final visibleGroups = groups.where((item) => item.hidden != true).toList();
   return GroupsState(
     value: switch (mode) {
       Mode.direct => [],
-      Mode.global => groups.toList(),
+      Mode.global => visibleGroups,
       Mode.rule =>
-        groups
+        visibleGroups
             .where((item) => item.hidden == false)
             .where((element) => element.name != GroupName.GLOBAL.name)
             .toList(),

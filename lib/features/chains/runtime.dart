@@ -426,14 +426,16 @@ class ProfileEffectiveConfigService {
       ),
     );
     final finalConfig = _copyMap(artifact.config);
-    final generatedSelectors = <String>[];
-    final routableChainSelectors = <String>[];
-    final orphanChainSelectors = <String>[];
+    // A selector with an explicit entry group is already routed by that
+    // group.  Only selectors without an entry group need the internal
+    // fallback aggregate below.  Keeping these sets separate prevents a
+    // healthy, directly attached chain from being exposed a second time
+    // through __avalon_chains.
+    final fallbackChainSelectors = <String>[];
     for (var index = 0; index < artifact.chainResults.length; index++) {
       final result = artifact.chainResults[index];
       if (!result.isValid || result.generatedGroups.isEmpty) continue;
       final selectorName = result.generatedGroups.first.name;
-      generatedSelectors.add(selectorName);
       if (index >= compiledBindings.length) continue;
       final binding = compiledBindings[index];
       diagnostics.addAll(
@@ -443,18 +445,12 @@ class ProfileEffectiveConfigService {
           selectorName: selectorName,
         ),
       );
-      final hasUsableEntryGroup = binding.entryGroups.any(
-        (name) => _hasGroup(finalConfig, name),
-      );
       if (binding.entryGroups.isEmpty) {
-        orphanChainSelectors.add(selectorName);
-        routableChainSelectors.add(selectorName);
-      } else if (hasUsableEntryGroup) {
-        routableChainSelectors.add(selectorName);
+        fallbackChainSelectors.add(selectorName);
       }
     }
     String? aggregateName;
-    if (generatedSelectors.isNotEmpty) {
+    if (fallbackChainSelectors.isNotEmpty) {
       final groups = finalConfig['proxy-groups'] is List
           ? List<dynamic>.from(finalConfig['proxy-groups'] as List)
           : <dynamic>[];
@@ -466,12 +462,11 @@ class ProfileEffectiveConfigService {
       groups.add({
         'name': aggregateName,
         'type': 'select',
-        // A selector whose configured entry group is missing must remain
-        // diagnostic-only. Do not make it reachable through another chain's
-        // aggregate when several bindings are compiled together.
-        'proxies': routableChainSelectors.isEmpty
-            ? generatedSelectors
-            : routableChainSelectors,
+        // This is an implementation fallback, not a user-facing proxy
+        // group. It is only materialized when a chain has no configured entry
+        // group and is hidden from the proxies page as a second safeguard.
+        'hidden': true,
+        'proxies': fallbackChainSelectors,
       });
       finalConfig['proxy-groups'] = groups;
     }
@@ -480,8 +475,8 @@ class ProfileEffectiveConfigService {
         config: finalConfig,
         boundProxyNames: artifact.boundProxyNames.values.toSet(),
         aggregateChainName: aggregateName,
-        orphanChainSelectors: orphanChainSelectors,
-        chainSelectors: routableChainSelectors,
+        orphanChainSelectors: fallbackChainSelectors,
+        chainSelectors: fallbackChainSelectors,
         isSubscriptionProfile: isSubscriptionProfile,
       ),
     );

@@ -616,6 +616,10 @@ void main() {
         await seed();
         final artifact = await assemble();
         expect(membersOf(artifact, 'G'), ['Source', '__avalon_chains']);
+        final aggregate = (artifact.config['proxy-groups'] as List)
+            .cast<Map>()
+            .singleWhere((item) => item['name'] == '__avalon_chains');
+        expect(aggregate['hidden'], isTrue);
       },
     );
 
@@ -626,6 +630,12 @@ void main() {
       final members = membersOf(artifact, 'G');
       expect(members.first, 'Source');
       expect(members, contains(selector));
+      expect(
+        (artifact.config['proxy-groups'] as List)
+            .cast<Map>()
+            .any((item) => item['name'] == '__avalon_chains'),
+        isFalse,
+      );
       expect(
         artifact.diagnostics.map((item) => item.code),
         isNot(contains('missing-chain-entry-group')),
@@ -654,6 +664,12 @@ void main() {
       expect(
         artifact.diagnostics.map((item) => item.code),
         contains('missing-chain-entry-group'),
+      );
+      expect(
+        (artifact.config['proxy-groups'] as List)
+            .cast<Map>()
+            .any((item) => item['name'] == '__avalon_chains'),
+        isFalse,
       );
       expect(artifact.isValid, isTrue);
     });
