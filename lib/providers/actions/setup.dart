@@ -67,7 +67,11 @@ class SetupAction extends _$SetupAction {
     final testUrl = ref.read(
       appSettingProvider.select((state) => state.testUrl),
     );
-    return SetupParams(selectedMap: selectedMap, testUrl: testUrl);
+    return SetupParams(
+      profileId: ref.read(currentProfileIdProvider) ?? 0,
+      selectedMap: selectedMap,
+      testUrl: testUrl,
+    );
   }
 
   void fullSetup() {
@@ -295,7 +299,11 @@ class SetupAction extends _$SetupAction {
       if (request.running && ref.read(suspendProvider)) {
         return;
       }
-      await setCoreRunning(request.running);
+      final applied = await setCoreRunning(request.running);
+      if (!applied && _isCurrent(request)) {
+        _setLocalRunning(false);
+        throw StateError(currentAppLocalizations.tsCaptureFailed);
+      }
     });
   }
 

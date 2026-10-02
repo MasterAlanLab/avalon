@@ -24,7 +24,7 @@ func decodeMethodArguments(call *MethodCall, response MethodResponse, target any
 	if err := call.decodeArguments(target); err != nil {
 		response.failure(
 			"invalid_arguments",
-			fmt.Sprintf("invalid arguments for %s: %v", call.Method, err),
+			fmt.Sprintf("invalid arguments for %s", call.Method),
 			nil,
 		)
 		return false
@@ -89,6 +89,9 @@ func handleMethodCall(call *MethodCall, response MethodResponse) {
 			response.failure("internal_error", fmt.Sprintf("internal panic: %v", r), nil)
 		}
 	}()
+	if handleTailscaleCall(call, response) {
+		return
+	}
 	switch call.Method {
 	case initClashMethod:
 		params := InitParams{}

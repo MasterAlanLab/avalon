@@ -7,12 +7,14 @@ part of '../core.dart';
 // **************************************************************************
 
 _SetupParams _$SetupParamsFromJson(Map<String, dynamic> json) => _SetupParams(
+  profileId: (json['profile-id'] as num?)?.toInt() ?? 0,
   selectedMap: Map<String, String>.from(json['selected-map'] as Map),
   testUrl: json['test-url'] as String,
 );
 
 Map<String, dynamic> _$SetupParamsToJson(_SetupParams instance) =>
     <String, dynamic>{
+      'profile-id': instance.profileId,
       'selected-map': instance.selectedMap,
       'test-url': instance.testUrl,
     };
@@ -169,6 +171,7 @@ const _$CoreEventTypeEnumMap = {
   CoreEventType.loaded: 'loaded',
   CoreEventType.crash: 'crash',
   CoreEventType.geoUpdate: 'geoUpdate',
+  CoreEventType.tailscale: 'tailscale',
 };
 
 _InvokeMessage _$InvokeMessageFromJson(Map<String, dynamic> json) =>

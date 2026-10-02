@@ -1,4 +1,4 @@
-//go:build cgo
+//go:build android && cgo
 
 package main
 
@@ -46,6 +46,9 @@ func (th *TunHandler) start(fd int, stack, address, dns string) {
 	if tunListener != nil {
 		log.Infoln("TUN address: %v", tunListener.Address())
 		th.listener = tunListener
+		tsAndroidTun.Store(true)
+		tsAndroidIPv6.Store(strings.Contains(address, ":"))
+		tsReportConfig(tsCurrentProfile(), nil)
 		return
 	}
 	th.clear()
@@ -58,6 +61,10 @@ func (th *TunHandler) close() {
 }
 
 func (th *TunHandler) clear() {
+	tsAndroidRoutesKnown.Store(false)
+	tsAndroidTun.Store(false)
+	tsAndroidIPv6.Store(false)
+	tsReportConfig(tsCurrentProfile(), nil)
 	th.removeHook()
 	if th.listener != nil {
 		_ = th.listener.Close()
@@ -189,7 +196,7 @@ func invokeMethod(callback unsafe.Pointer, paramsChar *C.char) {
 	err := json.Unmarshal([]byte(params), call)
 	if err != nil {
 		response := MethodResponse{callback: callback}
-		response.failure("invalid_method_call", err.Error(), nil)
+		response.failure("invalid_method_call", "invalid JSON frame", nil)
 		return
 	}
 	response := MethodResponse{
@@ -204,10 +211,12 @@ func startTUN(callback unsafe.Pointer, fd C.int, stackChar, addressChar, dnsChar
 	handleStartTun(callback, int(fd), takeCString(stackChar), takeCString(addressChar), takeCString(dnsChar))
 	if !isRunning {
 		handleStartListener()
-	} else {
-		handleResetConnections()
 	}
-	return true
+	// Route-only VPN rebuilds replace captured TUN flows, not unrelated proxy
+	// connections. Never replay established TCP/UDP data across interfaces.
+	tunLock.Lock()
+	defer tunLock.Unlock()
+	return tunHandler != nil && tunHandler.listener != nil
 }
 
 //export quickSetup

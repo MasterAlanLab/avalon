@@ -13,6 +13,8 @@
   </p>
 </div>
 
+[简体中文](../README.md) · [English](README.en.md) · [العربية](README.ar.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
 Ein Proxy-Client für Android, Windows, macOS und Linux auf Basis von [mihomo](https://github.com/MetaCubeX/mihomo). Unterstützt eigenständige Knoten, Abonnementverwaltung und mehrstufige Proxy-Ketten. Mit Flutter entwickelt.
 
 > Avalon basiert auf [FlClash](https://github.com/chen08209/FlClash).
@@ -31,6 +33,7 @@ Das Installationspaket für die jeweilige Plattform steht unter [Releases](https
 - Netzwerkdiagnose: Latenztests für Knoten, laufende Verbindungsübersicht und Laufzeitprotokolle.
 - Datensynchronisierung: lokale Sicherung und Wiederherstellung sowie Synchronisierung über WebDAV.
 - Darstellung: Desktop- und Mobilansichten, Dunkelmodus und anpassbare Farben.
+- Tailscale: Geräte anzeigen sowie Tailnet-Routing, entfernte Subnetze und Exit-Nodes konfigurieren.
 
 ## Betriebsmodi
 
@@ -40,7 +43,7 @@ Das Installationspaket für die jeweilige Plattform steht unter [Releases](https
 | Global | Den gesamten beim Kern eingehenden Datenverkehr über die in der globalen Proxy-Gruppe gewählte Verbindung leiten |
 | Direct | Ziele direkt und ohne Proxy-Knoten verbinden |
 
-Der Datenverkehr wird über den Systemproxy oder TUN eingebunden. Der Systemproxy bedient Anwendungen, die den Systemeinstellungen folgen. TUN übernimmt den Datenverkehr über eine virtuelle Netzwerkschnittstelle und leitet ihn gemäß dem gewählten Modus weiter.
+Desktop-Plattformen unterstützen Systemproxy und TUN; Android erfasst Datenverkehr über einen VPN-Dienst. Der Systemproxy gilt nur für Apps, die Proxy-Einstellungen beachten. TUN/VPN berücksichtigen konfigurierte Routen, IPv6-Einstellungen und Zugriffskontrollen.
 
 ## Kern-Engine
 
@@ -48,41 +51,21 @@ Der Datenverkehr wird über den Systemproxy oder TUN eingebunden. Der Systemprox
 
 Abonnements, Knotenbibliothek und Proxy-Ketten werden zu einer gemeinsamen Laufzeitkonfiguration zusammengeführt. Ketten verbinden ihre Stationen über `dialer-proxy` in der Reihenfolge „Client → vorgeschalteter Proxy → Hauptknoten → nachgeschalteter Proxy → Ziel“ und laufen in einer einzigen Kerninstanz.
 
-## Build
+## Entwicklung
+
+Im Stammverzeichnis des Repositorys ausführen. Die CI verwendet Flutter 3.44.4 und Go 1.26.4; native Komponenten benötigen außerdem Rust und die jeweilige Plattform-Toolchain.
 
 ```bash
-git clone --recurse-submodules https://github.com/MasterAlanLab/avalon.git
-cd avalon
 flutter pub get
-```
-
-Für den Build werden Flutter, Go und Rust benötigt. Die CI verwendet derzeit Flutter 3.44.4 und Go 1.26.4. Befehle und zusätzliche Abhängigkeiten je Plattform:
-
-| Plattform | Build-Befehl | Zusätzliche Abhängigkeiten |
-| :--- | :--- | :--- |
-| Android | `dart setup.dart android` | Android SDK und NDK; `ANDROID_NDK` setzen |
-| Windows | `dart setup.dart windows` | Visual Studio C++-Toolchain, GCC, Inno Setup |
-| macOS | `dart setup.dart macos` | Xcode, CocoaPods, Node.js / npm |
-| Linux | `dart setup.dart linux` | Das Skript installiert GTK, AppIndicator, Keybinder und weitere Abhängigkeiten über apt |
-
-Desktop-Pakete werden auf dem jeweiligen Betriebssystem erstellt. Die Ausgabe liegt in `dist/`. Die vollständige Umgebungskonfiguration steht im [Build-Workflow](../.github/workflows/build.yaml).
-
-## Tests
-
-```bash
-# Statische Analyse
 flutter analyze --no-fatal-infos
-
-# Unit- und Widget-Tests
 flutter test
-
-# Tests des Go-Core-Wrappers
-(cd core && go test .)
-
-# Tests der Rust-Komponenten
-cargo test --manifest-path services/helper/Cargo.toml
-cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
+
+## Dokumentation
+
+- [Entwicklung und Build (Chinesisch)](development.md): Umgebung, Core- und App-Builds, Tests, Codegenerierung und CI.
+- [Tailscale (Chinesisch)](tailscale.md): Anmeldung, Routing, Exit-Nodes, Identitäten und bekannte Probleme.
+- [Release-Workflow](../.github/workflows/build.yaml): plattformbezogene Pakete und Release-Konfiguration.
 
 ## Technologie-Stack
 

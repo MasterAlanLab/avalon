@@ -13,6 +13,8 @@
   </p>
 </div>
 
+[简体中文](../README.md) · [English](README.en.md) · [العربية](README.ar.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
 Cliente proxy para Android, Windows, macOS y Linux, basado en [mihomo](https://github.com/MetaCubeX/mihomo). Admite nodos independientes, gestión de suscripciones y cadenas de proxies de varios saltos. Desarrollado con Flutter.
 
 > Avalon está basado en [FlClash](https://github.com/chen08209/FlClash).
@@ -31,6 +33,7 @@ Descarga el paquete de instalación para tu plataforma desde [Releases](https://
 - Diagnóstico de red: pruebas de latencia de nodos, consulta de conexiones en tiempo real y registros de ejecución.
 - Sincronización de datos: copia de seguridad y restauración locales, con sincronización mediante WebDAV.
 - Temas: diseños para escritorio y móvil, modo oscuro y colores personalizables.
+- Tailscale: consulta dispositivos y configura rutas de Tailnet, subredes remotas y nodos de salida.
 
 ## Modos de funcionamiento
 
@@ -40,7 +43,7 @@ Descarga el paquete de instalación para tu plataforma desde [Releases](https://
 | Global | Envía todo el tráfico que entra en el núcleo por la salida elegida en el grupo global de proxies |
 | Direct | Conecta directamente con el destino, sin un nodo proxy |
 
-El tráfico puede entrar mediante el proxy del sistema o TUN. El proxy del sistema sirve a las aplicaciones que respetan la configuración del sistema; TUN captura el tráfico mediante una interfaz de red virtual y lo enruta según el modo seleccionado.
+En escritorio se admite proxy del sistema y TUN; Android captura tráfico mediante un servicio VPN. El proxy del sistema solo cubre aplicaciones que respetan sus ajustes. TUN/VPN siguen las rutas, la configuración IPv6 y los controles de acceso definidos.
 
 ## Motor de proxy
 
@@ -48,41 +51,21 @@ El tráfico puede entrar mediante el proxy del sistema o TUN. El proxy del siste
 
 Las suscripciones, la biblioteca de nodos y las cadenas de proxies se integran en una única configuración de ejecución. Las cadenas enlazan cada salto mediante `dialer-proxy`, en el orden «cliente → proxy previo → nodo principal → proxy posterior → destino», dentro de una sola instancia del núcleo.
 
-## Compilación
+## Desarrollo
+
+Ejecuta los comandos desde la raíz del repositorio. La CI usa Flutter 3.44.4 y Go 1.26.4; los componentes nativos también requieren Rust y las herramientas de cada plataforma.
 
 ```bash
-git clone --recurse-submodules https://github.com/MasterAlanLab/avalon.git
-cd avalon
 flutter pub get
-```
-
-La compilación requiere Flutter, Go y Rust. La CI utiliza actualmente Flutter 3.44.4 y Go 1.26.4. Comandos y dependencias adicionales por plataforma:
-
-| Plataforma | Comando de compilación | Dependencias adicionales |
-| :--- | :--- | :--- |
-| Android | `dart setup.dart android` | Android SDK y NDK; definir `ANDROID_NDK` |
-| Windows | `dart setup.dart windows` | Herramientas de C++ de Visual Studio, GCC, Inno Setup |
-| macOS | `dart setup.dart macos` | Xcode, CocoaPods, Node.js / npm |
-| Linux | `dart setup.dart linux` | El script instala GTK, AppIndicator, Keybinder y otras dependencias mediante apt |
-
-Los paquetes de escritorio se compilan en el sistema operativo correspondiente y se guardan en `dist/`. La configuración completa del entorno está en el [flujo de compilación](../.github/workflows/build.yaml).
-
-## Pruebas
-
-```bash
-# Análisis estático
 flutter analyze --no-fatal-infos
-
-# Pruebas unitarias y de widgets
 flutter test
-
-# Pruebas de la capa de integración del núcleo en Go
-(cd core && go test .)
-
-# Pruebas de los componentes Rust
-cargo test --manifest-path services/helper/Cargo.toml
-cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
+
+## Documentación
+
+- [Desarrollo y compilación (chino)](development.md): entorno, compilación del núcleo y la aplicación, pruebas, generación de código y CI.
+- [Tailscale (chino)](tailscale.md): inicio de sesión, rutas, nodos de salida, identidad y problemas conocidos.
+- [Flujo de publicación](../.github/workflows/build.yaml): empaquetado por plataforma y configuración de versiones.
 
 ## Tecnologías
 

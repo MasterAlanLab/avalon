@@ -6,14 +6,11 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## 在提交问题之前，请确认以下事项：
-        1. 请务必给issue填写一个简洁明了的标题，以便他人快速检索
-        2. 请确保[已有的问题](https://github.com/MasterAlanLab/avalon/issues?q=is%3Aissue) 中没有人提交过相似issue，否则请在已有的issue下进行讨论
-        3. 请务必按照模板规范详细描述问题，否则issue将会被直接关闭
-        ## Before submitting the issue, please make sure of the following checklist:
-        1. Please be sure to fill in a concise and clear title for the issue so that others can quickly search
-        2. Please make sure there is no similar issue in the [existing issues](https://github.com/MasterAlanLab/avalon/issues?q=is%3Aissue), otherwise please discuss under the existing issue
-        3. Please describe the problem in detail according to the template specification, otherwise issue will be closed directly.
+        请先搜索[已有问题](https://github.com/MasterAlanLab/avalon/issues?q=is%3Aissue)，使用简短标题，并填写版本、复现步骤及相关日志。
+        分享截图、日志或配置前，请移除密码、订阅令牌、Auth Key、完整授权链接和身份文件。
+
+        Search [existing issues](https://github.com/MasterAlanLab/avalon/issues?q=is%3Aissue), use a concise title, and include the version, reproduction steps, and relevant logs.
+        Remove passwords, subscription tokens, auth keys, full authorization URLs, and identity files from shared material.
   - type: textarea
     id: description
     attributes:
@@ -39,7 +36,7 @@ body:
       options:
         - Android
         - Windows
-        - MacOS
+        - macOS
         - Linux
     validations:
       required: true
@@ -51,7 +48,7 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: 日志(勿上传日志文件，请粘贴日志内容) / Log (Do not upload the log file, paste the log content directly)
-      description: 请提供完整或相关部分的Debug日志（请在“软件左侧菜单”->“设置”->“日志等级”调整到debug / Please provide a complete or relevant Debug log (please adjust it to debug in the left menu of software-> Settings-> Log Level)
+      label: 相关日志 / Relevant logs
+      description: 在工具 → 基础配置 → 日志等级选择 debug，复现后粘贴相关日志并移除凭据 / Select debug in Tools → Basic configuration → Log level, reproduce the issue, and paste relevant logs with credentials removed.
     validations:
       required: true

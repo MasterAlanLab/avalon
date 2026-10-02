@@ -13,6 +13,8 @@
   </p>
 </div>
 
+[简体中文](../README.md) · [English](README.en.md) · [العربية](README.ar.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
 Android, Windows, macOS, Linux용 프록시 클라이언트입니다. [mihomo](https://github.com/MetaCubeX/mihomo) 코어를 기반으로 독립 노드, 구독 관리, 멀티홉 프록시 체인을 지원하며 Flutter로 개발되었습니다.
 
 > Avalon은 [FlClash](https://github.com/chen08209/FlClash)를 기반으로 개발되었습니다.
@@ -31,6 +33,7 @@ Android, Windows, macOS, Linux용 프록시 클라이언트입니다. [mihomo](h
 - 네트워크 진단: 노드 지연 시간 테스트, 실시간 연결 확인, 실행 로그를 제공합니다.
 - 데이터 동기화: 로컬 백업 및 복원, WebDAV 동기화를 지원합니다.
 - 테마: 데스크톱 및 모바일 레이아웃, 다크 모드, 사용자 지정 색상을 지원합니다.
+- Tailscale: 기기 확인, Tailnet 라우팅, 원격 서브넷 및 출구 노드 설정.
 
 ## 동작 모드
 
@@ -40,7 +43,7 @@ Android, Windows, macOS, Linux용 프록시 클라이언트입니다. [mihomo](h
 | Global | 코어로 들어오는 모든 트래픽을 전역 프록시 그룹에서 선택한 아웃바운드로 전송 |
 | Direct | 프록시 노드 없이 대상에 직접 연결 |
 
-시스템 프록시와 TUN 두 가지 트래픽 수신 방식을 지원합니다. 시스템 프록시는 시스템 설정을 따르는 앱에 적용됩니다. TUN은 가상 네트워크 인터페이스로 트래픽을 수신한 뒤 선택한 모드에 따라 라우팅합니다.
+데스크톱은 시스템 프록시와 TUN을 지원하며 Android는 VPN 서비스로 트래픽을 수신합니다. 시스템 프록시는 프록시 설정을 따르는 앱만 포함합니다. TUN/VPN의 수신 범위는 라우트, IPv6 및 접근 제어 설정에 따릅니다.
 
 ## 코어 엔진
 
@@ -48,41 +51,21 @@ Android, Windows, macOS, Linux용 프록시 클라이언트입니다. [mihomo](h
 
 구독, 노드 라이브러리, 프록시 체인을 통합해 하나의 실행 구성을 생성합니다. 체인은 `dialer-proxy`로 각 홉을 연결하며, 단일 코어 인스턴스에서 ‘클라이언트 → 앞단 프록시 → 메인 노드 → 뒷단 프록시 → 대상’ 순서로 연결합니다.
 
-## 빌드
+## 개발
+
+저장소 루트에서 실행합니다. CI는 Flutter 3.44.4와 Go 1.26.4를 사용하며 네이티브 구성 요소에는 Rust와 플랫폼별 도구 체인도 필요합니다.
 
 ```bash
-git clone --recurse-submodules https://github.com/MasterAlanLab/avalon.git
-cd avalon
 flutter pub get
-```
-
-빌드에는 Flutter, Go, Rust가 필요합니다. 현재 CI는 Flutter 3.44.4와 Go 1.26.4를 사용합니다. 플랫폼별 명령과 추가 의존성은 다음과 같습니다.
-
-| 플랫폼 | 빌드 명령 | 추가 의존성 |
-| :--- | :--- | :--- |
-| Android | `dart setup.dart android` | Android SDK, NDK 및 `ANDROID_NDK` 설정 |
-| Windows | `dart setup.dart windows` | Visual Studio C++ 도구 체인, GCC, Inno Setup |
-| macOS | `dart setup.dart macos` | Xcode, CocoaPods, Node.js / npm |
-| Linux | `dart setup.dart linux` | 스크립트가 apt로 GTK, AppIndicator, Keybinder 등의 의존성을 설치 |
-
-데스크톱 패키지는 해당 운영체제에서 빌드하며 결과물은 `dist/`에 저장됩니다. 전체 환경 설정은 [빌드 워크플로](../.github/workflows/build.yaml)를 참고하세요.
-
-## 테스트
-
-```bash
-# 정적 분석
 flutter analyze --no-fatal-infos
-
-# 단위 및 위젯 테스트
 flutter test
-
-# Go 코어 래퍼 테스트
-(cd core && go test .)
-
-# Rust 컴포넌트 테스트
-cargo test --manifest-path services/helper/Cargo.toml
-cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
+
+## 문서
+
+- [개발 및 빌드 (중국어)](development.md): 환경 설정, 코어 및 앱 빌드, 테스트, 코드 생성과 CI.
+- [Tailscale (중국어)](tailscale.md): 로그인, 라우팅, 출구 노드, ID 관리 및 알려진 문제.
+- [릴리스 워크플로](../.github/workflows/build.yaml): 플랫폼별 패키징 및 릴리스 설정.
 
 ## 기술 스택
 

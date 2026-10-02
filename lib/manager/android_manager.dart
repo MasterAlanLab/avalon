@@ -5,6 +5,7 @@ import 'package:avalon/models/models.dart';
 import 'package:avalon/plugins/app.dart';
 import 'package:avalon/plugins/service.dart';
 import 'package:avalon/providers/providers.dart';
+import 'package:avalon/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,7 +35,11 @@ class _AndroidContainerState extends ConsumerState<AndroidManager>
           preferences.saveShareState(next);
         }, duration: const Duration(seconds: 1));
         if (prev?.needSyncSharedState != next.needSyncSharedState) {
-          service?.syncState(next.needSyncSharedState);
+          service?.syncState(next.needSyncSharedState).then((error) {
+            if (error.isNotEmpty) {
+              globalState.showNotifier(currentAppLocalizations.tsCaptureFailed);
+            }
+          });
         }
       }
     });

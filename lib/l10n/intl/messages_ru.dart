@@ -1142,6 +1142,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabAnimationDesc": MessageLookupByLibrary.simpleMessage(
       "Действительно только в мобильном виде",
     ),
+    "tailscale": MessageLookupByLibrary.simpleMessage("Tailscale"),
+    "tailscaleDesc": MessageLookupByLibrary.simpleMessage(
+      "Настройка сети Tailscale",
+    ),
     "tapToAuthorize": MessageLookupByLibrary.simpleMessage(
       "Нажмите, чтобы разрешить",
     ),
@@ -1173,6 +1177,222 @@ class MessageLookup extends MessageLookupByLibrary {
     "tproxyPort": MessageLookupByLibrary.simpleMessage("Tproxy-порт"),
     "trafficUsage": MessageLookupByLibrary.simpleMessage(
       "Использование трафика",
+    ),
+    "tsAcceptRoutes": MessageLookupByLibrary.simpleMessage(
+      "Использовать маршруты подсетей",
+    ),
+    "tsAcceptRoutesDesc": MessageLookupByLibrary.simpleMessage(
+      "Доступ к общим подсетям через TUN",
+    ),
+    "tsAccepted": MessageLookupByLibrary.simpleMessage("Действует"),
+    "tsActive": MessageLookupByLibrary.simpleMessage("Действует"),
+    "tsAll": MessageLookupByLibrary.simpleMessage("Все"),
+    "tsAllPublic": MessageLookupByLibrary.simpleMessage("Весь интернет-трафик"),
+    "tsApplyFailed": MessageLookupByLibrary.simpleMessage(
+      "Не удалось применить профиль; прежние настройки сохранены",
+    ),
+    "tsApprovedRoutes": MessageLookupByLibrary.simpleMessage(
+      "Маршруты подсетей",
+    ),
+    "tsAuthExpired": MessageLookupByLibrary.simpleMessage(
+      "Ключ авторизации истёк",
+    ),
+    "tsAuthInvalid": MessageLookupByLibrary.simpleMessage(
+      "Недействительный ключ авторизации",
+    ),
+    "tsAuthKey": MessageLookupByLibrary.simpleMessage("Ключ авторизации"),
+    "tsAuthRejected": MessageLookupByLibrary.simpleMessage(
+      "Сервер отклонил вход",
+    ),
+    "tsAuthUsed": MessageLookupByLibrary.simpleMessage(
+      "Ключ авторизации уже использован",
+    ),
+    "tsAuthorizing": MessageLookupByLibrary.simpleMessage(
+      "Ожидание авторизации",
+    ),
+    "tsAutoRoute": MessageLookupByLibrary.simpleMessage(
+      "Автоматическая маршрутизация",
+    ),
+    "tsAutoRouteDesc": MessageLookupByLibrary.simpleMessage(
+      "Доступ к устройствам Tailscale в режиме правил",
+    ),
+    "tsAvailable": MessageLookupByLibrary.simpleMessage("Доступен"),
+    "tsBackendDisconnected": MessageLookupByLibrary.simpleMessage(
+      "Соединение прервано",
+    ),
+    "tsBackendError": MessageLookupByLibrary.simpleMessage(
+      "Ошибка операции; повторите попытку",
+    ),
+    "tsBlocked": MessageLookupByLibrary.simpleMessage(
+      "Связанные соединения остановлены",
+    ),
+    "tsBrowserLogin": MessageLookupByLibrary.simpleMessage("Вход в браузере"),
+    "tsCachedWarning": MessageLookupByLibrary.simpleMessage(
+      "Показаны сохранённые данные",
+    ),
+    "tsCancelLogin": MessageLookupByLibrary.simpleMessage(
+      "Отменить авторизацию",
+    ),
+    "tsCancelled": MessageLookupByLibrary.simpleMessage("Отменено"),
+    "tsCaptureFailed": MessageLookupByLibrary.simpleMessage(
+      "Не удалось включить маршрутизацию; проверьте настройки сети",
+    ),
+    "tsCapturePending": MessageLookupByLibrary.simpleMessage(
+      "Ожидание применения маршрутов",
+    ),
+    "tsConnecting": MessageLookupByLibrary.simpleMessage("Подключение"),
+    "tsControlServer": MessageLookupByLibrary.simpleMessage("URL сервера"),
+    "tsControlWarning": MessageLookupByLibrary.simpleMessage(
+      "Проблема с подключением к серверу",
+    ),
+    "tsCustomServer": MessageLookupByLibrary.simpleMessage("Свой сервер"),
+    "tsDerpPath": MessageLookupByLibrary.simpleMessage("Ретранслятор"),
+    "tsDevices": MessageLookupByLibrary.simpleMessage("Устройства"),
+    "tsDirectPath": MessageLookupByLibrary.simpleMessage("Прямое соединение"),
+    "tsEmbeddedNote": MessageLookupByLibrary.simpleMessage(
+      "Вход не открывает доступ к локальным службам",
+    ),
+    "tsExit": MessageLookupByLibrary.simpleMessage("Выходной узел"),
+    "tsExitDesc": MessageLookupByLibrary.simpleMessage(
+      "Доступ в Интернет через выходной узел",
+    ),
+    "tsExitDevice": MessageLookupByLibrary.simpleMessage("Выходной узел"),
+    "tsFallback": MessageLookupByLibrary.simpleMessage(
+      "Используется исходная маршрутизация",
+    ),
+    "tsGroupSemantics": MessageLookupByLibrary.simpleMessage(
+      "Только группы, напрямую выбранные правилами",
+    ),
+    "tsIPv6Missing": MessageLookupByLibrary.simpleMessage("IPv6 не действует"),
+    "tsInactive": MessageLookupByLibrary.simpleMessage("Не действует"),
+    "tsIntro": MessageLookupByLibrary.simpleMessage(
+      "Подключение к сети Tailscale",
+    ),
+    "tsInvalidAuthURL": MessageLookupByLibrary.simpleMessage(
+      "Недействительная ссылка для входа; повторите попытку",
+    ),
+    "tsInvalidServer": MessageLookupByLibrary.simpleMessage(
+      "Укажите верный адрес; для удалённых серверов нужен HTTPS",
+    ),
+    "tsKeepLocal": MessageLookupByLibrary.simpleMessage(
+      "Сохранить локальный маршрут",
+    ),
+    "tsKeyExpiry": MessageLookupByLibrary.simpleMessage("Срок действия ключа"),
+    "tsKeyLogin": MessageLookupByLibrary.simpleMessage("Вход по ключу"),
+    "tsLastSeen": MessageLookupByLibrary.simpleMessage("Последний раз в сети"),
+    "tsLoading": MessageLookupByLibrary.simpleMessage("Загрузка"),
+    "tsLoggedIn": MessageLookupByLibrary.simpleMessage("Вход выполнен"),
+    "tsLoggedOut": MessageLookupByLibrary.simpleMessage("Вход не выполнен"),
+    "tsLogout": MessageLookupByLibrary.simpleMessage("Выйти"),
+    "tsLogoutConfirm": MessageLookupByLibrary.simpleMessage(
+      "Выйти и удалить данные входа на этом устройстве?",
+    ),
+    "tsLogoutFailed": MessageLookupByLibrary.simpleMessage(
+      "Выход не завершён; повторите попытку",
+    ),
+    "tsMissingBinding": MessageLookupByLibrary.simpleMessage(
+      "Некоторые группы отсутствуют",
+    ),
+    "tsMissingExit": MessageLookupByLibrary.simpleMessage(
+      "Выходной узел недоступен",
+    ),
+    "tsMissingGroup": MessageLookupByLibrary.simpleMessage("Группа не найдена"),
+    "tsNeedsLogin": MessageLookupByLibrary.simpleMessage("Войдите снова"),
+    "tsNoBinding": MessageLookupByLibrary.simpleMessage("Группы не выбраны"),
+    "tsNoDevices": MessageLookupByLibrary.simpleMessage("Нет других устройств"),
+    "tsNoGroups": MessageLookupByLibrary.simpleMessage("Нет доступных групп"),
+    "tsNoProfile": MessageLookupByLibrary.simpleMessage("Профиль не выбран"),
+    "tsNoSearchResults": MessageLookupByLibrary.simpleMessage(
+      "Нет подходящих устройств",
+    ),
+    "tsNotProvided": MessageLookupByLibrary.simpleMessage("Нет данных"),
+    "tsNotTested": MessageLookupByLibrary.simpleMessage("Не проверено"),
+    "tsOS": MessageLookupByLibrary.simpleMessage("OS"),
+    "tsOff": MessageLookupByLibrary.simpleMessage("Не используется"),
+    "tsOffline": MessageLookupByLibrary.simpleMessage("Не в сети"),
+    "tsOnline": MessageLookupByLibrary.simpleMessage("В сети"),
+    "tsOpenBrowser": MessageLookupByLibrary.simpleMessage("Открыть браузер"),
+    "tsOriginalRouting": MessageLookupByLibrary.simpleMessage(
+      "При переключении связанные соединения закрываются",
+    ),
+    "tsPartial": MessageLookupByLibrary.simpleMessage("Действует частично"),
+    "tsPause": MessageLookupByLibrary.simpleMessage("Приостановить"),
+    "tsPaused": MessageLookupByLibrary.simpleMessage("Приостановлено"),
+    "tsPeerRelay": MessageLookupByLibrary.simpleMessage(
+      "Ретрансляция через устройство",
+    ),
+    "tsPending": MessageLookupByLibrary.simpleMessage("Ожидание применения"),
+    "tsProbeExpired": MessageLookupByLibrary.simpleMessage("Результат устарел"),
+    "tsProbeExplanation": MessageLookupByLibrary.simpleMessage(
+      "Проверка связи с устройством",
+    ),
+    "tsProbeFailed": MessageLookupByLibrary.simpleMessage(
+      "Проверка не удалась",
+    ),
+    "tsProbeSuccess": MessageLookupByLibrary.simpleMessage("Проверка успешна"),
+    "tsProxyOnly": MessageLookupByLibrary.simpleMessage(
+      "Только для прокси-трафика",
+    ),
+    "tsQRCode": MessageLookupByLibrary.simpleMessage("QR-код авторизации"),
+    "tsRefreshDevices": MessageLookupByLibrary.simpleMessage(
+      "Обновить устройства",
+    ),
+    "tsRemoteWarning": MessageLookupByLibrary.simpleMessage(
+      "Использовать удалённый маршрут? Это повлияет на локальный доступ к подсети",
+    ),
+    "tsResume": MessageLookupByLibrary.simpleMessage("Возобновить"),
+    "tsRetry": MessageLookupByLibrary.simpleMessage("Повторить"),
+    "tsReturnOriginal": MessageLookupByLibrary.simpleMessage(
+      "Использовать исходную маршрутизацию",
+    ),
+    "tsRouting": MessageLookupByLibrary.simpleMessage("Маршрутизация"),
+    "tsRuleRequired": MessageLookupByLibrary.simpleMessage(
+      "Только в режиме правил",
+    ),
+    "tsSearch": MessageLookupByLibrary.simpleMessage("Поиск устройств"),
+    "tsSelectDevice": MessageLookupByLibrary.simpleMessage(
+      "Сведения об устройстве",
+    ),
+    "tsSelectedGroups": MessageLookupByLibrary.simpleMessage(
+      "Выбранные группы",
+    ),
+    "tsServerUnreachable": MessageLookupByLibrary.simpleMessage(
+      "Ошибка подключения к серверу",
+    ),
+    "tsServiceStopped": MessageLookupByLibrary.simpleMessage(
+      "Служба остановлена",
+    ),
+    "tsSplit": MessageLookupByLibrary.simpleMessage("Маршрутизация"),
+    "tsStopConnections": MessageLookupByLibrary.simpleMessage(
+      "Остановить связанные соединения",
+    ),
+    "tsStopTests": MessageLookupByLibrary.simpleMessage("Отменить проверку"),
+    "tsStopping": MessageLookupByLibrary.simpleMessage("Остановка"),
+    "tsSubnetConflict": MessageLookupByLibrary.simpleMessage(
+      "Подсеть пересекается с локальной сетью",
+    ),
+    "tsTest": MessageLookupByLibrary.simpleMessage("Проверить соединение"),
+    "tsTestAll": MessageLookupByLibrary.simpleMessage(
+      "Проверить устройства в списке",
+    ),
+    "tsTesting": MessageLookupByLibrary.simpleMessage("Проверка"),
+    "tsThisDevice": MessageLookupByLibrary.simpleMessage("Это устройство"),
+    "tsUnapprovedExit": MessageLookupByLibrary.simpleMessage(
+      "Выходной узел не одобрен",
+    ),
+    "tsUnknown": MessageLookupByLibrary.simpleMessage("Неизвестно"),
+    "tsUnsupported": MessageLookupByLibrary.simpleMessage(
+      "В этой версии Tailscale не включён",
+    ),
+    "tsUseExit": MessageLookupByLibrary.simpleMessage("Использовать как выход"),
+    "tsUseRemote": MessageLookupByLibrary.simpleMessage(
+      "Использовать удалённый маршрут",
+    ),
+    "tsWaitingApproval": MessageLookupByLibrary.simpleMessage(
+      "Ожидание одобрения",
+    ),
+    "tsWhenUnavailable": MessageLookupByLibrary.simpleMessage(
+      "Если выход недоступен",
     ),
     "tun": MessageLookupByLibrary.simpleMessage("TUN"),
     "tunDesc": MessageLookupByLibrary.simpleMessage(

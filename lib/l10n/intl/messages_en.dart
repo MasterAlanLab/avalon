@@ -1079,6 +1079,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabAnimationDesc": MessageLookupByLibrary.simpleMessage(
       "Effective only in mobile view",
     ),
+    "tailscale": MessageLookupByLibrary.simpleMessage("Tailscale"),
+    "tailscaleDesc": MessageLookupByLibrary.simpleMessage(
+      "Configure Tailscale network",
+    ),
     "tapToAuthorize": MessageLookupByLibrary.simpleMessage("Tap to authorize"),
     "tcpConcurrent": MessageLookupByLibrary.simpleMessage("TCP concurrent"),
     "tcpConcurrentDesc": MessageLookupByLibrary.simpleMessage(
@@ -1103,6 +1107,198 @@ class MessageLookup extends MessageLookupByLibrary {
     "tools": MessageLookupByLibrary.simpleMessage("Tools"),
     "tproxyPort": MessageLookupByLibrary.simpleMessage("Tproxy Port"),
     "trafficUsage": MessageLookupByLibrary.simpleMessage("Traffic usage"),
+    "tsAcceptRoutes": MessageLookupByLibrary.simpleMessage(
+      "Accept subnet routes",
+    ),
+    "tsAcceptRoutesDesc": MessageLookupByLibrary.simpleMessage(
+      "Access shared subnets through TUN",
+    ),
+    "tsAccepted": MessageLookupByLibrary.simpleMessage("Active"),
+    "tsActive": MessageLookupByLibrary.simpleMessage("Active"),
+    "tsAll": MessageLookupByLibrary.simpleMessage("All"),
+    "tsAllPublic": MessageLookupByLibrary.simpleMessage("All Internet traffic"),
+    "tsApplyFailed": MessageLookupByLibrary.simpleMessage(
+      "Profile update failed; previous settings kept",
+    ),
+    "tsApprovedRoutes": MessageLookupByLibrary.simpleMessage("Subnet routes"),
+    "tsAuthExpired": MessageLookupByLibrary.simpleMessage("Auth key expired"),
+    "tsAuthInvalid": MessageLookupByLibrary.simpleMessage(
+      "Auth key rejected as invalid",
+    ),
+    "tsAuthKey": MessageLookupByLibrary.simpleMessage("Auth key"),
+    "tsAuthRejected": MessageLookupByLibrary.simpleMessage(
+      "Sign-in rejected by server",
+    ),
+    "tsAuthUsed": MessageLookupByLibrary.simpleMessage("Auth key already used"),
+    "tsAuthorizing": MessageLookupByLibrary.simpleMessage(
+      "Awaiting authorization",
+    ),
+    "tsAutoRoute": MessageLookupByLibrary.simpleMessage("Automatic routing"),
+    "tsAutoRouteDesc": MessageLookupByLibrary.simpleMessage(
+      "Access Tailscale devices in Rule mode",
+    ),
+    "tsAvailable": MessageLookupByLibrary.simpleMessage("Available"),
+    "tsBackendDisconnected": MessageLookupByLibrary.simpleMessage(
+      "Disconnected",
+    ),
+    "tsBackendError": MessageLookupByLibrary.simpleMessage(
+      "Operation failed; try again",
+    ),
+    "tsBlocked": MessageLookupByLibrary.simpleMessage(
+      "Related connections stopped",
+    ),
+    "tsBrowserLogin": MessageLookupByLibrary.simpleMessage("Browser sign-in"),
+    "tsCachedWarning": MessageLookupByLibrary.simpleMessage(
+      "Showing cached information",
+    ),
+    "tsCancelLogin": MessageLookupByLibrary.simpleMessage(
+      "Cancel authorization",
+    ),
+    "tsCancelled": MessageLookupByLibrary.simpleMessage("Cancelled"),
+    "tsCaptureFailed": MessageLookupByLibrary.simpleMessage(
+      "Routing failed; check network settings",
+    ),
+    "tsCapturePending": MessageLookupByLibrary.simpleMessage(
+      "Waiting for routing to apply",
+    ),
+    "tsConnecting": MessageLookupByLibrary.simpleMessage("Connecting"),
+    "tsControlServer": MessageLookupByLibrary.simpleMessage("Server URL"),
+    "tsControlWarning": MessageLookupByLibrary.simpleMessage(
+      "Server connection interrupted",
+    ),
+    "tsCustomServer": MessageLookupByLibrary.simpleMessage("Custom server"),
+    "tsDerpPath": MessageLookupByLibrary.simpleMessage("Relay"),
+    "tsDevices": MessageLookupByLibrary.simpleMessage("Devices"),
+    "tsDirectPath": MessageLookupByLibrary.simpleMessage("Direct"),
+    "tsEmbeddedNote": MessageLookupByLibrary.simpleMessage(
+      "Signing in does not expose local services",
+    ),
+    "tsExit": MessageLookupByLibrary.simpleMessage("Exit node"),
+    "tsExitDesc": MessageLookupByLibrary.simpleMessage(
+      "Access the Internet through an exit node",
+    ),
+    "tsExitDevice": MessageLookupByLibrary.simpleMessage("Exit node"),
+    "tsFallback": MessageLookupByLibrary.simpleMessage(
+      "Using original routing",
+    ),
+    "tsGroupSemantics": MessageLookupByLibrary.simpleMessage(
+      "Applies to groups matched directly by rules",
+    ),
+    "tsIPv6Missing": MessageLookupByLibrary.simpleMessage("IPv6 inactive"),
+    "tsInactive": MessageLookupByLibrary.simpleMessage("Inactive"),
+    "tsIntro": MessageLookupByLibrary.simpleMessage(
+      "Connect to your Tailscale network",
+    ),
+    "tsInvalidAuthURL": MessageLookupByLibrary.simpleMessage(
+      "Invalid sign-in link; try again",
+    ),
+    "tsInvalidServer": MessageLookupByLibrary.simpleMessage(
+      "Use a valid address; remote servers require HTTPS",
+    ),
+    "tsKeepLocal": MessageLookupByLibrary.simpleMessage("Keep local"),
+    "tsKeyExpiry": MessageLookupByLibrary.simpleMessage("Key expiry"),
+    "tsKeyLogin": MessageLookupByLibrary.simpleMessage("Key sign-in"),
+    "tsLastSeen": MessageLookupByLibrary.simpleMessage("Last online"),
+    "tsLoading": MessageLookupByLibrary.simpleMessage("Loading"),
+    "tsLoggedIn": MessageLookupByLibrary.simpleMessage("Signed in"),
+    "tsLoggedOut": MessageLookupByLibrary.simpleMessage("Not signed in"),
+    "tsLogout": MessageLookupByLibrary.simpleMessage("Sign out"),
+    "tsLogoutConfirm": MessageLookupByLibrary.simpleMessage(
+      "Sign out and clear local sign-in data?",
+    ),
+    "tsLogoutFailed": MessageLookupByLibrary.simpleMessage(
+      "Sign-out incomplete; try again",
+    ),
+    "tsMissingBinding": MessageLookupByLibrary.simpleMessage(
+      "Some groups are missing",
+    ),
+    "tsMissingExit": MessageLookupByLibrary.simpleMessage(
+      "Exit node unavailable",
+    ),
+    "tsMissingGroup": MessageLookupByLibrary.simpleMessage("Group not found"),
+    "tsNeedsLogin": MessageLookupByLibrary.simpleMessage("Sign in again"),
+    "tsNoBinding": MessageLookupByLibrary.simpleMessage("No groups selected"),
+    "tsNoDevices": MessageLookupByLibrary.simpleMessage(
+      "No other devices visible",
+    ),
+    "tsNoGroups": MessageLookupByLibrary.simpleMessage("No groups available"),
+    "tsNoProfile": MessageLookupByLibrary.simpleMessage("No profile selected"),
+    "tsNoSearchResults": MessageLookupByLibrary.simpleMessage(
+      "No matching devices",
+    ),
+    "tsNotProvided": MessageLookupByLibrary.simpleMessage("Not provided"),
+    "tsNotTested": MessageLookupByLibrary.simpleMessage("Not tested"),
+    "tsOS": MessageLookupByLibrary.simpleMessage("OS"),
+    "tsOff": MessageLookupByLibrary.simpleMessage("Off"),
+    "tsOffline": MessageLookupByLibrary.simpleMessage("Offline"),
+    "tsOnline": MessageLookupByLibrary.simpleMessage("Online"),
+    "tsOpenBrowser": MessageLookupByLibrary.simpleMessage("Open browser"),
+    "tsOriginalRouting": MessageLookupByLibrary.simpleMessage(
+      "Closes related connections when switching",
+    ),
+    "tsPartial": MessageLookupByLibrary.simpleMessage("Partially active"),
+    "tsPause": MessageLookupByLibrary.simpleMessage("Pause"),
+    "tsPaused": MessageLookupByLibrary.simpleMessage("Paused"),
+    "tsPeerRelay": MessageLookupByLibrary.simpleMessage("Peer relay"),
+    "tsPending": MessageLookupByLibrary.simpleMessage("Pending"),
+    "tsProbeExpired": MessageLookupByLibrary.simpleMessage("Result expired"),
+    "tsProbeExplanation": MessageLookupByLibrary.simpleMessage(
+      "Check device connectivity",
+    ),
+    "tsProbeFailed": MessageLookupByLibrary.simpleMessage("Test failed"),
+    "tsProbeSuccess": MessageLookupByLibrary.simpleMessage("Test passed"),
+    "tsProxyOnly": MessageLookupByLibrary.simpleMessage(
+      "Applies to proxy traffic only",
+    ),
+    "tsQRCode": MessageLookupByLibrary.simpleMessage("Authorization QR code"),
+    "tsRefreshDevices": MessageLookupByLibrary.simpleMessage("Refresh devices"),
+    "tsRemoteWarning": MessageLookupByLibrary.simpleMessage(
+      "Use the remote route? Local access to this subnet will be affected",
+    ),
+    "tsResume": MessageLookupByLibrary.simpleMessage("Resume"),
+    "tsRetry": MessageLookupByLibrary.simpleMessage("Retry"),
+    "tsReturnOriginal": MessageLookupByLibrary.simpleMessage(
+      "Use original routing",
+    ),
+    "tsRouting": MessageLookupByLibrary.simpleMessage("Routing"),
+    "tsRuleRequired": MessageLookupByLibrary.simpleMessage("Rule mode only"),
+    "tsSearch": MessageLookupByLibrary.simpleMessage("Search devices"),
+    "tsSelectDevice": MessageLookupByLibrary.simpleMessage(
+      "View device details",
+    ),
+    "tsSelectedGroups": MessageLookupByLibrary.simpleMessage("Selected groups"),
+    "tsServerUnreachable": MessageLookupByLibrary.simpleMessage(
+      "Server connection failed",
+    ),
+    "tsServiceStopped": MessageLookupByLibrary.simpleMessage("Service stopped"),
+    "tsSplit": MessageLookupByLibrary.simpleMessage("Routing"),
+    "tsStopConnections": MessageLookupByLibrary.simpleMessage(
+      "Stop related connections",
+    ),
+    "tsStopTests": MessageLookupByLibrary.simpleMessage("Cancel tests"),
+    "tsStopping": MessageLookupByLibrary.simpleMessage("Stopping"),
+    "tsSubnetConflict": MessageLookupByLibrary.simpleMessage(
+      "Subnet overlaps the local network",
+    ),
+    "tsTest": MessageLookupByLibrary.simpleMessage("Test connection"),
+    "tsTestAll": MessageLookupByLibrary.simpleMessage("Test listed devices"),
+    "tsTesting": MessageLookupByLibrary.simpleMessage("Testing"),
+    "tsThisDevice": MessageLookupByLibrary.simpleMessage("This device"),
+    "tsUnapprovedExit": MessageLookupByLibrary.simpleMessage(
+      "Exit node not approved",
+    ),
+    "tsUnknown": MessageLookupByLibrary.simpleMessage("Unknown"),
+    "tsUnsupported": MessageLookupByLibrary.simpleMessage(
+      "Tailscale is not enabled in this version",
+    ),
+    "tsUseExit": MessageLookupByLibrary.simpleMessage("Use as exit"),
+    "tsUseRemote": MessageLookupByLibrary.simpleMessage("Use remote"),
+    "tsWaitingApproval": MessageLookupByLibrary.simpleMessage(
+      "Awaiting approval",
+    ),
+    "tsWhenUnavailable": MessageLookupByLibrary.simpleMessage(
+      "When the exit is unavailable",
+    ),
     "tun": MessageLookupByLibrary.simpleMessage("TUN"),
     "tunDesc": MessageLookupByLibrary.simpleMessage(
       "only effective in administrator mode",

@@ -13,6 +13,8 @@
   </p>
 </div>
 
+[简体中文](README.md) · [English](docs/README.en.md) · [العربية](docs/README.ar.md) · [Deutsch](docs/README.de.md) · [Español](docs/README.es.md) · [Italiano](docs/README.it.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md)
+
 Android、Windows、macOS 和 Linux 平台的代理客户端，基于 [mihomo](https://github.com/MetaCubeX/mihomo) 内核，支持独立节点、订阅管理和多跳代理链。使用 Flutter 编写。
 
 > Avalon 基于 [FlClash](https://github.com/chen08209/FlClash) 二次开发。
@@ -31,6 +33,7 @@ Android、Windows、macOS 和 Linux 平台的代理客户端，基于 [mihomo](h
 - 网络诊断：节点延迟测试、实时连接查看与运行日志。
 - 数据同步：本地备份与恢复，支持 WebDAV 同步。
 - 界面主题：适配桌面和移动端，支持深色模式与自定义配色。
+- Tailscale：查看设备、配置 Tailnet 分流、远端子网和出口节点。
 
 ## 运行模式
 
@@ -40,7 +43,7 @@ Android、Windows、macOS 和 Linux 平台的代理客户端，基于 [mihomo](h
 | Global | 所有进入内核的流量使用全局策略组选定的出站 |
 | Direct | 直接连接目标，不使用代理节点 |
 
-支持系统代理和 TUN 两种流量接入方式。系统代理供遵循系统设置的应用使用；TUN 通过虚拟网卡接管流量，再按所选模式分流。
+桌面端支持系统代理和 TUN；Android 通过 VPN 服务接入流量。系统代理仅覆盖遵循代理设置的应用，TUN/VPN 按配置的路由、IPv6 和访问控制设置接管流量。
 
 ## 核心引擎
 
@@ -48,41 +51,21 @@ Android、Windows、macOS 和 Linux 平台的代理客户端，基于 [mihomo](h
 
 订阅、节点库和代理链统一生成运行配置。代理链通过 `dialer-proxy` 串联各跳，按「客户端 → 前置 → 主节点 → 后置 → 目标」的顺序连接，由单个内核实例运行。
 
-## 构建
+## 开发
+
+在仓库根目录运行。当前 CI 使用 Flutter 3.44.4、Go 1.26.4；原生组件还需要 Rust 和各平台工具链。
 
 ```bash
-git clone --recurse-submodules https://github.com/MasterAlanLab/avalon.git
-cd avalon
 flutter pub get
-```
-
-构建需要 Flutter、Go 和 Rust。当前 CI 使用 Flutter 3.44.4、Go 1.26.4，各平台命令及额外依赖如下：
-
-| 平台 | 构建命令 | 额外依赖 |
-| :--- | :--- | :--- |
-| Android | `dart setup.dart android` | Android SDK、NDK，设置 `ANDROID_NDK` |
-| Windows | `dart setup.dart windows` | Visual Studio C++ 工具链、GCC、Inno Setup |
-| macOS | `dart setup.dart macos` | Xcode、CocoaPods、Node.js / npm |
-| Linux | `dart setup.dart linux` | 脚本通过 apt 安装 GTK、AppIndicator、Keybinder 等依赖 |
-
-桌面端在对应系统上构建，产物保存在 `dist/`。完整环境配置见 [构建工作流](.github/workflows/build.yaml)。
-
-## 测试
-
-```bash
-# 静态检查
 flutter analyze --no-fatal-infos
-
-# 单元与组件测试
 flutter test
-
-# Go 核心封装测试
-(cd core && go test .)
-
-# Rust 组件测试
-cargo test --manifest-path services/helper/Cargo.toml
-cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
+
+## 文档
+
+- [开发与构建](docs/development.md)：环境初始化、核心与应用构建、测试、代码生成和 CI。
+- [Tailscale](docs/tailscale.md)：登录、分流、出口、身份管理及已知问题。
+- [发布工作流](.github/workflows/build.yaml)：分平台打包与发布配置。
 
 ## 技术栈
 

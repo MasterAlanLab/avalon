@@ -8,6 +8,7 @@ part 'generated/core.g.dart';
 @freezed
 abstract class SetupParams with _$SetupParams {
   const factory SetupParams({
+    @Default(0) @JsonKey(name: 'profile-id') int profileId,
     @JsonKey(name: 'selected-map') required Map<String, String> selectedMap,
     @JsonKey(name: 'test-url') required String testUrl,
   }) = _SetupParams;

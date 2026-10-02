@@ -13,6 +13,8 @@
   </p>
 </div>
 
+[简体中文](../README.md) · [English](README.en.md) · [العربية](README.ar.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
 Client proxy per Android, Windows, macOS e Linux, basato su [mihomo](https://github.com/MetaCubeX/mihomo). Supporta nodi indipendenti, gestione delle sottoscrizioni e catene di proxy multi-hop. Sviluppato con Flutter.
 
 > Avalon è basato su [FlClash](https://github.com/chen08209/FlClash).
@@ -31,6 +33,7 @@ Scarica il pacchetto di installazione per la tua piattaforma da [Releases](https
 - Diagnostica di rete: test di latenza dei nodi, visualizzazione delle connessioni in tempo reale e log di esecuzione.
 - Sincronizzazione dei dati: backup e ripristino locali, con sincronizzazione tramite WebDAV.
 - Temi: layout per desktop e dispositivi mobili, modalità scura e colori personalizzabili.
+- Tailscale: visualizzazione dei dispositivi e configurazione di routing Tailnet, sottoreti remote e nodi di uscita.
 
 ## Modalità operative
 
@@ -40,7 +43,7 @@ Scarica il pacchetto di installazione per la tua piattaforma da [Releases](https
 | Global | Invia tutto il traffico che entra nel core attraverso l'uscita selezionata nel gruppo proxy globale |
 | Direct | Si connette direttamente alla destinazione, senza un nodo proxy |
 
-Il traffico può essere acquisito tramite il proxy di sistema o TUN. Il proxy di sistema serve le applicazioni che rispettano le impostazioni di sistema; TUN acquisisce il traffico tramite un'interfaccia di rete virtuale e lo instrada secondo la modalità selezionata.
+Le piattaforme desktop supportano proxy di sistema e TUN; Android acquisisce il traffico tramite un servizio VPN. Il proxy di sistema copre solo le app che ne rispettano le impostazioni. TUN/VPN seguono le rotte, le impostazioni IPv6 e i controlli di accesso configurati.
 
 ## Motore proxy
 
@@ -48,41 +51,21 @@ Il traffico può essere acquisito tramite il proxy di sistema o TUN. Il proxy di
 
 Sottoscrizioni, libreria dei nodi e catene di proxy confluiscono in un'unica configurazione di esecuzione. Le catene collegano i vari hop tramite `dialer-proxy`, nell'ordine «client → proxy a monte → nodo principale → proxy a valle → destinazione», all'interno di una sola istanza del core.
 
-## Compilazione
+## Sviluppo
+
+Eseguire dalla radice del repository. La CI usa Flutter 3.44.4 e Go 1.26.4; i componenti nativi richiedono anche Rust e le toolchain delle piattaforme.
 
 ```bash
-git clone --recurse-submodules https://github.com/MasterAlanLab/avalon.git
-cd avalon
 flutter pub get
-```
-
-La compilazione richiede Flutter, Go e Rust. La CI utilizza attualmente Flutter 3.44.4 e Go 1.26.4. Comandi e dipendenze aggiuntive per piattaforma:
-
-| Piattaforma | Comando di compilazione | Dipendenze aggiuntive |
-| :--- | :--- | :--- |
-| Android | `dart setup.dart android` | Android SDK e NDK; impostare `ANDROID_NDK` |
-| Windows | `dart setup.dart windows` | Toolchain C++ di Visual Studio, GCC, Inno Setup |
-| macOS | `dart setup.dart macos` | Xcode, CocoaPods, Node.js / npm |
-| Linux | `dart setup.dart linux` | Lo script installa GTK, AppIndicator, Keybinder e altre dipendenze tramite apt |
-
-I pacchetti desktop vengono compilati sul rispettivo sistema operativo e salvati in `dist/`. La configurazione completa dell'ambiente è disponibile nel [workflow di compilazione](../.github/workflows/build.yaml).
-
-## Test
-
-```bash
-# Analisi statica
 flutter analyze --no-fatal-infos
-
-# Test unitari e dei widget
 flutter test
-
-# Test del wrapper del core in Go
-(cd core && go test .)
-
-# Test dei componenti Rust
-cargo test --manifest-path services/helper/Cargo.toml
-cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
+
+## Documentazione
+
+- [Sviluppo e compilazione (cinese)](development.md): ambiente, build del core e dell’app, test, generazione del codice e CI.
+- [Tailscale (cinese)](tailscale.md): accesso, routing, nodi di uscita, identità e problemi noti.
+- [Workflow di rilascio](../.github/workflows/build.yaml): pacchetti per piattaforma e configurazione dei rilasci.
 
 ## Stack tecnologico
 

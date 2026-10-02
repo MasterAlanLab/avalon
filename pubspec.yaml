@@ -4,7 +4,7 @@ homepage: https://github.com/MasterAlanLab/avalon
 repository: https://github.com/MasterAlanLab/avalon
 issue_tracker: https://github.com/MasterAlanLab/avalon/issues
 publish_to: 'none'
-version: 1.0.16+2026092904
+version: 1.0.17+2026100201
 environment:
   sdk: '>=3.8.0 <4.0.0'
 
@@ -87,6 +87,7 @@ dependencies:
     path: plugins/rust_api
   setup:
     path: plugins/setup
+  qr_flutter: ^4.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

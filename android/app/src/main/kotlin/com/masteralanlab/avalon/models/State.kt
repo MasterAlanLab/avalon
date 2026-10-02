@@ -14,6 +14,7 @@ data class SharedState(
 )
 
 data class SetupParams(
+    @SerializedName("profile-id") val profileId: Long = 0,
     @SerializedName("test-url")
     val testUrl: String,
     @SerializedName("selected-map")

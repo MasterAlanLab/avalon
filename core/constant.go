@@ -17,6 +17,7 @@ type InitParams struct {
 }
 
 type SetupParams struct {
+	ProfileID   int64             `json:"profile-id"`
 	SelectedMap map[string]string `json:"selected-map"`
 	TestURL     string            `json:"test-url"`
 }
@@ -81,6 +82,18 @@ type ProxiesData struct {
 }
 
 const (
+	tailscaleCaptureMethod         CoreMethod = "tailscaleCapture"
+	tailscaleCapabilitiesMethod    CoreMethod = "tailscaleCapabilities"
+	tailscaleSnapshotMethod        CoreMethod = "tailscaleSnapshot"
+	tailscaleLoginMethod           CoreMethod = "tailscaleLogin"
+	tailscaleCancelMethod          CoreMethod = "tailscaleCancel"
+	tailscalePauseMethod           CoreMethod = "tailscalePause"
+	tailscaleResumeMethod          CoreMethod = "tailscaleResume"
+	tailscaleLogoutMethod          CoreMethod = "tailscaleLogout"
+	tailscaleRefreshMethod         CoreMethod = "tailscaleRefresh"
+	tailscalePreferencesMethod     CoreMethod = "tailscalePreferences"
+	tailscaleProbeMethod           CoreMethod = "tailscaleProbe"
+	tailscaleCancelProbesMethod    CoreMethod = "tailscaleCancelProbes"
 	messageMethod                  CoreMethod = "message"
 	initClashMethod                CoreMethod = "initClash"
 	getIsInitMethod                CoreMethod = "getIsInit"
@@ -133,6 +146,7 @@ type Message struct {
 }
 
 const (
+	TailscaleMessage MessageType = "tailscale"
 	LogMessage       MessageType = "log"
 	DelayMessage     MessageType = "delay"
 	RequestMessage   MessageType = "request"

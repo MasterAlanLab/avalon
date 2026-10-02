@@ -46,5 +46,30 @@
       "message": "config not found",
       "details": null
     }
+  },
+  "tailscaleEvent": {
+    "type": "tailscale",
+    "data": {
+      "supported": true,
+      "generation": 7,
+      "revision": 2,
+      "sequence": 3,
+      "session": "paused",
+      "devices": [
+        {
+          "id": "stable-node",
+          "dnsName": "host.custom.example.",
+          "online": true,
+          "ips": [
+            "100.70.1.1"
+          ]
+        }
+      ],
+      "prefs": {
+        "autoRoute": true,
+        "exitScope": "groups",
+        "failurePolicy": "stop"
+      }
+    }
   }
 }

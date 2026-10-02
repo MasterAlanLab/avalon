@@ -88,19 +88,19 @@ class ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             return
         }
         scope.launch {
-            ServiceState.syncSharedState(state)
-            result.success("")
+            runCatching { ServiceState.syncSharedState(state) }.fold(
+                onSuccess = { result.success("") },
+                onFailure = { result.success("vpn_route_apply_failed") },
+            )
         }
     }
 
     private fun start(result: MethodChannel.Result) {
-        ServiceState.requestStart()
-        result.success(true)
+        scope.launch { result.success(ServiceState.requestStart().await()) }
     }
 
     private fun stop(result: MethodChannel.Result) {
-        ServiceState.requestStop()
-        result.success(true)
+        scope.launch { result.success(ServiceState.requestStop().await()) }
     }
 
     private fun sendEvent(value: String?) {

@@ -7,6 +7,8 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import org.json.JSONObject
+import org.json.JSONArray
 import androidx.core.content.getSystemService
 import com.masteralanlab.avalon.common.AccessControlMode
 import com.masteralanlab.avalon.common.GlobalState
@@ -153,6 +155,7 @@ class VpnService : SystemVpnService(), ManagedService {
                     address = options.tunAddress,
                     dns = options.tunDns,
                 )
+                reportCapture(options,false)
             } catch (error: Exception) {
                 stopTunLocked()
                 throw error
@@ -170,12 +173,8 @@ class VpnService : SystemVpnService(), ManagedService {
         )
 
         if (options.ipv6) {
-            try {
-                val ipv6Address = IPV6_ADDRESS.toCIDR()
-                addAddress(ipv6Address.address, ipv6Address.prefixLength)
-            } catch (_: Exception) {
-                GlobalState.log("IPv6 VPN address is not supported")
-            }
+            val ipv6Address = IPV6_ADDRESS.toCIDR()
+            addAddress(ipv6Address.address, ipv6Address.prefixLength)
             addRoutes(
                 routes = options::getIpv6RouteAddress,
                 fallbackAddress = NET_ANY6,
@@ -189,7 +188,7 @@ class VpnService : SystemVpnService(), ManagedService {
         fallbackAddress: String,
         logTag: String,
     ) {
-        val routeList = runCatching(routes).getOrDefault(emptyList())
+        val routeList = routes()
         if (routeList.isEmpty()) {
             addRoute(fallbackAddress, 0)
             return
@@ -199,8 +198,8 @@ class VpnService : SystemVpnService(), ManagedService {
                 Log.d(logTag, "address: ${route.address} prefixLength: ${route.prefixLength}")
                 addRoute(route.address, route.prefixLength)
             }
-        } catch (_: Exception) {
-            addRoute(fallbackAddress, 0)
+        } catch (error: Exception) {
+            throw IllegalStateException("VPN route installation failed", error)
         }
     }
 
@@ -231,6 +230,27 @@ class VpnService : SystemVpnService(), ManagedService {
             handleStart(requireNotNull(ServiceConfig.vpnOptions) { "VPN options are missing" })
         } catch (error: Exception) {
             stop()
+            throw error
+        }
+    }
+
+    private fun reportCapture(options: VpnOptions, failure: Boolean) {
+        val args = JSONObject().put("prefixes", JSONArray(options.routeAddress.filter { options.ipv6 || !it.contains(":") }))
+            .put("failure", failure)
+        val request = JSONObject().put("method", "tailscaleCapture").put("arguments", args)
+        Core.invokeMethod(request.toString()) { _ -> }
+    }
+
+    fun reconfigure(options: VpnOptions) {
+        val previous = ServiceConfig.vpnOptions ?: error("VPN options are missing")
+        try {
+            handleStart(options)
+            ServiceConfig.updateVpnOptions(options)
+        } catch (error: Exception) {
+            // Android may have replaced the old interface before core creation failed.
+            // Re-establish its previous routes; a rollback failure stays an error.
+            handleStart(previous)
+            reportCapture(previous,true)
             throw error
         }
     }

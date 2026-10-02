@@ -172,8 +172,15 @@ object ServiceState {
         return result
     }
 
-    fun syncSharedState(state: SharedState) {
-        sharedState = state
+    suspend fun syncSharedState(state: SharedState) {
+        val previous = sharedState.vpnOptions
+        val candidate = if (state.setupParams == null) state.copy(setupParams = sharedState.setupParams) else state
+        val next = candidate.vpnOptions
+        if (previous != null && next != null && previous.enable && next.enable &&
+            (previous.routeAddress != next.routeAddress || previous.ipv6 != next.ipv6)) {
+            ServiceController.reconfigureVpn(next).getOrThrow()
+        }
+        sharedState = candidate
         applySharedState()
     }
 

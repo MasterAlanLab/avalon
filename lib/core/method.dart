@@ -4,6 +4,18 @@ import 'package:avalon/enum/enum.dart';
 
 enum CoreMethod {
   message,
+  tailscaleCapture,
+  tailscaleCapabilities,
+  tailscaleSnapshot,
+  tailscaleLogin,
+  tailscaleCancel,
+  tailscalePause,
+  tailscaleResume,
+  tailscaleLogout,
+  tailscaleRefresh,
+  tailscalePreferences,
+  tailscaleProbe,
+  tailscaleCancelProbes,
   initClash,
   getIsInit,
   forceGc,

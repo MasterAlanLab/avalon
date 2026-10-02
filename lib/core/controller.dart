@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:avalon/common/common.dart';
 import 'package:avalon/core/core.dart';
 import 'package:avalon/core/interface.dart';
+import 'package:avalon/core/method.dart';
 import 'package:avalon/enum/enum.dart';
 import 'package:avalon/models/models.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
@@ -70,6 +71,11 @@ class CoreController {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> tailscale(
+    CoreMethod method, [
+    Object? arguments,
+  ]) => _interface.tailscale(method, arguments);
 
   Future<bool> init(int version) async {
     await initGeo();

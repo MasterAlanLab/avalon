@@ -11,6 +11,7 @@ import 'fingerprint.dart';
 import 'logging.dart';
 import 'options.dart';
 import 'target.dart';
+import 'tailscale_patch.dart';
 import 'util.dart';
 
 final _log = Logger('go_builder');
@@ -106,6 +107,7 @@ class GoBuilder {
     List<Target> targets, {
     bool force = false,
   }) async {
+    await ensureTailscalePatch(rootDir);
     final results = await Future.wait(
       targets.map((target) => build(target, force: force)),
     );

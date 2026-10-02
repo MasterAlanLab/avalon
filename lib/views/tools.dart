@@ -20,6 +20,7 @@ import 'package:path/path.dart' show dirname, join;
 import 'config/advanced.dart';
 import 'developer.dart';
 import 'theme.dart';
+import 'tailscale.dart';
 
 class ToolsView extends ConsumerStatefulWidget {
   const ToolsView({super.key});
@@ -94,12 +95,16 @@ class _ToolViewState extends ConsumerState<ToolsView> {
       Consumer(
         builder: (_, ref, _) {
           final state = ref.watch(moreToolsSelectorStateProvider);
-          if (state.navigationItems.isEmpty) {
-            return Container();
-          }
           return Column(
             children: [
               ListHeader(title: context.appLocalizations.more),
+              ListItem.open(
+                leading: const Icon(Icons.hub_outlined),
+                title: Text(context.appLocalizations.tailscale),
+                subtitle: Text(context.appLocalizations.tailscaleDesc),
+                widget: const TailscalePage(),
+                forceFull: true,
+              ),
               _buildNavigationMenu(state.navigationItems),
             ],
           );

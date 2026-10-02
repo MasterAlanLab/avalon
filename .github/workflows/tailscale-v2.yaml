@@ -1,0 +1,116 @@
+name: Tailscale v2 core
+on:
+  pull_request:
+    paths: ['core/**', 'android/**', 'tool/*tailscale*', 'plugins/setup/buildkit/**', 'lib/features/tailscale/**', 'lib/views/tailscale.dart', 'test/tailscale/**', 'arb/**', '.github/workflows/tailscale-v2.yaml']
+  workflow_dispatch:
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: amd64
+          - os: windows-2022
+            platform: windows
+            arch: amd64
+          - os: macos-latest
+            platform: macos
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.4'
+          cache-dependency-path: core/go.sum
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          cache: true
+      - name: Apply tracked pinned patch
+        shell: bash
+        run: bash tool/apply_tailscale_patch.sh
+      - name: Core compatibility and real backend tests
+        shell: bash
+        working-directory: core
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          set -e
+          go test .
+          go vet .
+          go test -tags with_gvisor .
+          go vet -tags with_gvisor .
+          go test -tags 'with_gvisor,no_tailscale' .
+          go vet -tags 'with_gvisor,no_tailscale' .
+          cd Clash.Meta
+          go test -tags with_gvisor ./adapter/outbound ./dns ./tunnel
+      - name: Concurrent manager race tests
+        if: runner.os != 'Windows'
+        working-directory: core
+        run: go test -race -tags with_gvisor .
+      - name: Build actual production core through buildkit
+        shell: bash
+        run: bash plugins/setup/buildkit/run_build_tool.sh ${{ matrix.platform }} --arch ${{ matrix.arch }} --force
+      - name: Actual executable IPC smoke (no accounts)
+        if: runner.os != 'Windows'
+        run: python3 tool/tailscale_ipc_smoke.py "$PWD/libclash/${{ matrix.platform }}/AvalonCore"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailscale-core-${{ matrix.platform }}-${{ matrix.arch }}
+          path: libclash/${{ matrix.platform }}/
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.4'
+          cache-dependency-path: core/go.sum
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          cache: true
+      - name: Install pinned NDK
+        run: |
+          sdkmanager 'ndk;28.2.13676358' 'platforms;android-36'
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - name: Build patched Go shared core
+        run: bash plugins/setup/buildkit/run_build_tool.sh android --arch arm64 --force
+      - name: Compile Kotlin JNI and Flutter together
+        run: flutter build apk --debug --target-platform android-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tailscale-android-arm64-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
+
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test --reporter expanded
+      - name: Buildkit patch and cache tests
+        working-directory: plugins/setup/buildkit/build_tool
+        run: |
+          dart pub get
+          dart analyze
+          dart test

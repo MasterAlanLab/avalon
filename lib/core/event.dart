@@ -22,6 +22,8 @@ List<CoreEvent> coreEventsFromData(Object? data) {
 }
 
 abstract mixin class CoreEventListener {
+  void onTailscale(Map<String, dynamic> data) {}
+
   void onLog(Log log) {}
 
   void onDelay(Delay delay) {}
@@ -48,6 +50,11 @@ class CoreEventManager {
       for (final CoreEventListener listener in _listeners) {
         try {
           switch (event.type) {
+            case CoreEventType.tailscale:
+              listener.onTailscale(
+                Map<String, dynamic>.from(event.data as Map),
+              );
+              break;
             case CoreEventType.log:
               listener.onLog(Log.fromJson(event.data));
               break;

@@ -131,7 +131,7 @@ enum ResultType {
   error,
 }
 
-enum CoreEventType { log, delay, request, loaded, crash, geoUpdate }
+enum CoreEventType { log, delay, request, loaded, crash, geoUpdate, tailscale }
 
 enum InvokeMessageType { protect, process }
 
@@ -260,7 +260,8 @@ enum DashboardWidget {
     platforms: desktopPlatforms,
   ),
   intranetIp(GridItem(crossAxisCellCount: 4, child: IntranetIP())),
-  memoryInfo(GridItem(crossAxisCellCount: 4, child: MemoryInfo()));
+  memoryInfo(GridItem(crossAxisCellCount: 4, child: MemoryInfo())),
+  tailscale(GridItem(crossAxisCellCount: 4, child: TailscaleCard()));
 
   final GridItem widget;
   final List<SupportPlatform> platforms;

@@ -11,7 +11,7 @@ object Core {
         stack: String,
         address: String,
         dns: String,
-    )
+    ): Boolean
 
     external fun forceGC()
 
@@ -34,7 +34,7 @@ object Core {
         address: String,
         dns: String,
     ) {
-        startTun(
+        check(startTun(
             fd,
             object : TunInterface {
                 override fun protect(fd: Int) {
@@ -58,7 +58,7 @@ object Core {
             stack,
             address,
             dns,
-        )
+        )) { "Core TUN creation failed" }
     }
 
     external fun suspended(

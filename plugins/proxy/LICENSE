@@ -1,1 +1,7 @@
-TODO: Add your license here.
+This package is part of Avalon.
+
+Avalon-authored additions and modifications follow the GNU Affero General
+Public License version 3 in ../../LICENSE. FlClash-derived code retains the
+GNU General Public License version 3 in ../../LICENSE-GPL-3.0.
+
+See ../../NOTICE for copyright, upstream attribution, and third-party terms.

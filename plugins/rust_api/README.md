@@ -1,92 +1,41 @@
 # rust_api
 
-A new Flutter FFI plugin project.
+Avalon's Rust-backed desktop IPC server. Dart bindings use **flutter_rust_bridge 2.12.0**; Cargo builds `cdylib` and `staticlib` libraries through the bundled [cargokit](cargokit/README) integration.
 
-## Getting Started
+## API and transport
 
-This project is a starting point for a Flutter
-[FFI plugin](https://flutter.dev/to/ffi-package),
-a specialized package that includes native code directly invoked with Dart FFI.
+The public entry point is [lib/rust_api.dart](lib/rust_api.dart). Initialize `RustLib` before calling the API:
 
-## Project structure
+- `restartIpcServer(name: ...)` stops the previous server and returns a stream of IPC events.
+- `sendIpcMessage(data: ...)` queues a message for the connected Go core.
+- `stopIpcServer()` stops and joins the server thread; stop it before disposing the bridge.
 
-This template uses the following structure:
+Unix hosts use local sockets; Windows uses named pipes. Wire messages carry a four-byte little-endian length followed by a payload, with a 64 MiB frame limit. Dart stream events have a one-byte event type followed by the event payload: ready, connected, disconnected, data, or error. The writer queue is bounded by message count and bytes, with timeout/error reporting rather than silent message loss.
 
-* `src`: Contains the native source code, and a CmakeFile.txt file for building
-  that source code into a dynamic library.
+Implementation: [rust/src/api/ipc.rs](rust/src/api/ipc.rs). Avalon uses this transport on desktop; Android's core bridge is JNI/FFI. Plugin metadata also registers an iOS FFI target, but Avalon has no iOS application target.
 
-* `lib`: Contains the Dart code that defines the API of the plugin, and which
-  calls into the native code using `dart:ffi`.
+## Build and test
 
-* platform folders (`android`, `ios`, `windows`, etc.): Contains the build files
-  for building and bundling the native code library with the platform application.
+Flutter platform builds invoke cargokit automatically. This package registers macOS, Linux, Windows, and iOS native builds; Android is not registered here.
 
-## Building and bundling native code
+From the repository root:
 
-The `pubspec.yaml` specifies FFI plugins as follows:
-
-```yaml
-  plugin:
-    platforms:
-      some_platform:
-        ffiPlugin: true
+```bash
+cargo fmt --manifest-path plugins/rust_api/rust/Cargo.toml -- --check
+cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
 
-This configuration invokes the native build for the various target platforms
-and bundles the binaries in Flutter applications using these FFI plugins.
+The tests cover framing, partial reads/writes, queue pressure, disconnects, and lifecycle behavior. Windows-specific behavior also requires Windows execution. Application/core build commands are maintained in [development.md](../../docs/development.md).
 
-This can be combined with dartPluginClass, such as when FFI is used for the
-implementation of one platform in a federated plugin:
+## Generate bindings
 
-```yaml
-  plugin:
-    implements: some_other_plugin
-    platforms:
-      some_platform:
-        dartPluginClass: SomeClass
-        ffiPlugin: true
+After changing the public Rust API, run from this plugin directory:
+
+```bash
+cargo install flutter_rust_bridge_codegen --version 2.12.0 --locked
+flutter_rust_bridge_codegen generate
 ```
 
-A plugin can have both FFI and method channels:
+[flutter_rust_bridge.yaml](flutter_rust_bridge.yaml) reads `crate::api` from `rust/` and writes Dart bindings to `lib/src/rust/`. Register new API modules in [rust/src/api/mod.rs](rust/src/api/mod.rs), then export the generated module from `lib/rust_api.dart` when needed. Regenerate `rust/src/frb_generated.rs` and Dart bindings together instead of editing them manually; keep the Cargo, Dart runtime, and generator versions aligned.
 
-```yaml
-  plugin:
-    platforms:
-      some_platform:
-        pluginClass: SomeName
-        ffiPlugin: true
-```
-
-The native build systems that are invoked by FFI (and method channel) plugins are:
-
-* For Android: Gradle, which invokes the Android NDK for native builds.
-  * See the documentation in android/build.gradle.
-* For iOS and MacOS: Xcode, via CocoaPods.
-  * See the documentation in ios/rust_api.podspec.
-  * See the documentation in macos/rust_api.podspec.
-* For Linux and Windows: CMake.
-  * See the documentation in linux/CMakeLists.txt.
-  * See the documentation in windows/CMakeLists.txt.
-
-## Binding to native code
-
-To use the native code, bindings in Dart are needed.
-To avoid writing these by hand, they are generated from the header file
-(`src/rust_api.h`) by `package:ffigen`.
-Regenerate the bindings by running `dart run ffigen --config ffigen.yaml`.
-
-## Invoking native code
-
-Very short-running native functions can be directly invoked from any isolate.
-For example, see `sum` in `lib/rust_api.dart`.
-
-Longer-running functions should be invoked on a helper isolate to avoid
-dropping frames in Flutter applications.
-For example, see `sumAsync` in `lib/rust_api.dart`.
-
-## Flutter help
-
-For help getting started with Flutter, view our
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
+Copyright and licensing follow the repository [NOTICE](../../NOTICE); cargokit retains its own [license](cargokit/LICENSE).

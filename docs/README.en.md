@@ -13,6 +13,8 @@
   </p>
 </div>
 
+[简体中文](../README.md) · [English](README.en.md) · [العربية](README.ar.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
 A proxy client for Android, Windows, macOS, and Linux, powered by [mihomo](https://github.com/MetaCubeX/mihomo). Supports standalone nodes, subscription management, and multi-hop proxy chains. Built with Flutter.
 
 > Avalon is based on [FlClash](https://github.com/chen08209/FlClash).
@@ -31,6 +33,7 @@ Download the package for your platform from [Releases](https://github.com/Master
 - Network diagnostics: node latency tests, live connection monitoring, and runtime logs.
 - Data sync: local backup and restore, with WebDAV synchronization.
 - Themes: desktop and mobile layouts, dark mode, and custom colors.
+- Tailscale: view devices and configure Tailnet routing, remote subnets, and exit nodes.
 
 ## Operating Modes
 
@@ -40,7 +43,7 @@ Download the package for your platform from [Releases](https://github.com/Master
 | Global | Send all traffic entering the core through the outbound selected in the global proxy group |
 | Direct | Connect directly to the destination without a proxy node |
 
-Traffic can enter through the system proxy or TUN. The system proxy serves applications that follow the system settings; TUN captures traffic through a virtual network interface and routes it according to the selected mode.
+Desktop platforms support system proxy and TUN; Android captures traffic through a VPN service. The system proxy only covers apps that follow proxy settings. TUN/VPN capture follows the configured routes, IPv6 settings, and access controls.
 
 ## Core Engine
 
@@ -48,41 +51,21 @@ Traffic can enter through the system proxy or TUN. The system proxy serves appli
 
 Subscriptions, the node library, and proxy chains are combined into a single runtime configuration. Chains use `dialer-proxy` to connect each hop in the order “client → pre-proxy → main node → post-proxy → destination,” within a single core instance.
 
-## Build
+## Development
+
+Run from the repository root. CI uses Flutter 3.44.4 and Go 1.26.4; native components also require Rust and platform toolchains.
 
 ```bash
-git clone --recurse-submodules https://github.com/MasterAlanLab/avalon.git
-cd avalon
 flutter pub get
-```
-
-Building requires Flutter, Go, and Rust. CI currently uses Flutter 3.44.4 and Go 1.26.4. Platform commands and additional dependencies:
-
-| Platform | Build command | Additional dependencies |
-| :--- | :--- | :--- |
-| Android | `dart setup.dart android` | Android SDK and NDK; set `ANDROID_NDK` |
-| Windows | `dart setup.dart windows` | Visual Studio C++ toolchain, GCC, Inno Setup |
-| macOS | `dart setup.dart macos` | Xcode, CocoaPods, Node.js / npm |
-| Linux | `dart setup.dart linux` | The script installs GTK, AppIndicator, Keybinder, and other dependencies through apt |
-
-Build desktop packages on the corresponding operating system. Output is saved to `dist/`. See the [build workflow](../.github/workflows/build.yaml) for the full environment configuration.
-
-## Tests
-
-```bash
-# Static analysis
 flutter analyze --no-fatal-infos
-
-# Unit and widget tests
 flutter test
-
-# Go core wrapper tests
-(cd core && go test .)
-
-# Rust component tests
-cargo test --manifest-path services/helper/Cargo.toml
-cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
+
+## Documentation
+
+- [Development and builds (Chinese)](development.md): environment setup, core and app builds, tests, code generation, and CI.
+- [Tailscale (Chinese)](tailscale.md): sign-in, routing, exit nodes, identity management, and known issues.
+- [Release workflow](../.github/workflows/build.yaml): platform packaging and release configuration.
 
 ## Tech Stack
 

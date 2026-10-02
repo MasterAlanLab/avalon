@@ -255,6 +255,29 @@ func updateConfig(params *UpdateParams) error {
 		return errors.New("config is not loaded")
 	}
 	general := currentConfig.General
+	previousBaseTun := tsBaseTun
+	previousGeneral := *general
+	previousController := currentConfig.Controller.ExternalController
+	previousDNS := currentConfig.DNS
+	rollback := func() {
+		tsBaseTun = previousBaseTun
+		*general = previousGeneral
+		currentConfig.DNS = previousDNS
+		tunnel.SetMode(general.Mode)
+		tunnel.SetSniffing(general.Sniffing)
+		tunnel.SetFindProcessMode(general.FindProcessMode)
+		dialer.SetTcpConcurrent(general.TCPConcurrent)
+		dialer.DefaultInterface.Store(general.Interface)
+		adapter.UnifiedDelay.Store(general.UnifiedDelay)
+		log.SetLevel(general.LogLevel)
+		resolver.DisableIPv6 = !general.IPv6
+		if currentConfig.Controller.ExternalController != previousController {
+			currentConfig.Controller.ExternalController = previousController
+			route.ReCreateServer(&route.Config{Addr: previousController})
+		}
+		executor.ApplyRuntimeDNS(previousDNS, general.IPv6)
+		_ = updateListeners(true)
+	}
 	previousMode := general.Mode
 	previousTun := general.Tun
 	if params.MixedPort != nil {
@@ -322,6 +345,28 @@ func updateConfig(params *UpdateParams) error {
 		if params.Tun.Stack != nil {
 			general.Tun.Stack = *params.Tun.Stack
 		}
+		tsBaseTun.Enable = params.Tun.Enable
+		if params.Tun.AutoRoute != nil {
+			tsBaseTun.AutoRoute = *params.Tun.AutoRoute
+		}
+		if params.Tun.StrictRoute != nil {
+			tsBaseTun.StrictRoute = *params.Tun.StrictRoute
+		}
+		if params.Tun.Device != nil {
+			tsBaseTun.Device = *params.Tun.Device
+		}
+		if params.Tun.RouteAddress != nil {
+			tsBaseTun.RouteAddress = *params.Tun.RouteAddress
+		}
+		if params.Tun.Inet6Address != nil {
+			tsBaseTun.Inet6Address = *params.Tun.Inet6Address
+		}
+		if params.Tun.DNSHijack != nil {
+			tsBaseTun.DNSHijack = *params.Tun.DNSHijack
+		}
+		if params.Tun.Stack != nil {
+			tsBaseTun.Stack = *params.Tun.Stack
+		}
 	}
 	tunChanged := params.Tun != nil && !equalTunConfig(general.Tun, previousTun)
 	log.Infoln(
@@ -345,20 +390,28 @@ func updateConfig(params *UpdateParams) error {
 		general.Tun.RouteAddress,
 	)
 
+	if err := tsApplyNetworkOverlayLocked(); err != nil {
+		rollback()
+		tsReportConfig(tsCurrentProfile(), err)
+		return err
+	}
+	tunChanged = params.Tun != nil && !equalTunConfig(general.Tun, previousTun)
+	if err := updateListeners(tunChanged); err != nil {
+		log.Errorln("[CONFIG] hot update listeners failed: %v", err)
+		rollback()
+		tsReportConfig(tsCurrentProfile(), err)
+		return err
+	}
 	if params.GeoAutoUpdate != nil {
 		updater.SetGeoAutoUpdate(*params.GeoAutoUpdate)
 	}
 	if params.GeoUpdateInterval != nil {
 		updater.SetGeoUpdateInterval(*params.GeoUpdateInterval)
 	}
-
-	if err := updateListeners(tunChanged); err != nil {
-		log.Errorln("[CONFIG] hot update listeners failed: %v", err)
-		return err
-	}
 	if updater.GeoAutoUpdate() {
 		updater.RegisterGeoUpdaterWithCancel()
 	}
+	tsReportConfig(tsCurrentProfile(), nil)
 	return nil
 }
 
@@ -366,21 +419,46 @@ func applyConfig(params *SetupParams) error {
 	runtime.GC()
 	runLock.Lock()
 	defer runLock.Unlock()
-	var err error
-	constant.DefaultTestURL = params.TestURL
-	currentConfig, err = executor.ParseWithPath(filepath.Join(constant.Path.HomeDir(), "config.yaml"))
+	candidate, err := tsParseConfig(filepath.Join(constant.Path.HomeDir(), "config.yaml"))
 	if err != nil {
-		currentConfig, _ = config.ParseRawConfig(config.DefaultRawConfig())
+		tsReportConfig(params.ProfileID, err)
+		return err
 	}
-	hub.ApplyConfig(currentConfig)
+	previous := currentConfig
+	previousSelections := tsCurrentSelections()
+	candidateSource, _ := os.ReadFile(filepath.Join(constant.Path.HomeDir(), "config.yaml"))
+	constant.DefaultTestURL = params.TestURL
+	currentConfig = candidate
+	hub.ApplyConfig(candidate)
 	patchSelectGroup(params.SelectedMap)
-	if listenerErr := updateListeners(true); listenerErr != nil {
-		return listenerErr
+	if err = updateListeners(true); err != nil {
+		if previous != nil {
+			if len(lastUsableTSYAML) > 0 {
+				path := filepath.Join(constant.Path.HomeDir(), ".tailscale-rollback.yaml")
+				if os.WriteFile(path, lastUsableTSYAML, 0600) == nil {
+					if restored, e := tsParseConfig(path); e == nil {
+						previous = restored
+					}
+					_ = os.Remove(path)
+				}
+			}
+			currentConfig = previous
+			hub.ApplyConfig(previous)
+			patchSelectGroup(previousSelections)
+			_ = updateListeners(true)
+		}
+		tsReportConfig(params.ProfileID, err)
+		return err
 	}
+	lastUsableTSYAML = candidateSource
+	if base, e := config.UnmarshalRawConfig(candidateSource); e == nil {
+		tsBaseTun = base.Tun
+	}
+	tsReportConfig(params.ProfileID, nil)
 	if updater.GeoAutoUpdate() {
 		updater.RegisterGeoUpdaterWithCancel()
 	}
-	return err
+	return nil
 }
 
 func UnmarshalJson(data []byte, v any) error {

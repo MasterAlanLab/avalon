@@ -22,6 +22,20 @@ val hasReleaseSigning = releaseStoreFile.exists() &&
     releaseKeyAlias != null &&
     releaseKeyPassword != null
 
+// Keep JNI/core packaging aligned with the Flutter invocation. Cached libraries
+// for an unrequested ABI must not make this APK claim that ABI is supported.
+// Respect our defaultConfig ABI filters instead of resetting to all Flutter ABIs.
+extra["disable-abi-filtering"] = true
+val avalonTargetAbis = ((findProperty("target-platform") as? String)
+    ?: "android-arm,android-arm64,android-x64").split(",").mapNotNull {
+    when (it.trim()) {
+        "android-arm" -> "armeabi-v7a"
+        "android-arm64" -> "arm64-v8a"
+        "android-x64" -> "x86_64"
+        else -> null
+    }
+}.toSet()
+
 android {
     namespace = "com.masteralanlab.avalon"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -33,6 +47,14 @@ android {
     }
 
     defaultConfig {
+        // Flutter split-per-ABI builds own their filters. For a fat/single APK,
+        // keep precisely the target-platform set rather than Flutter's all-ABI default.
+        if (findProperty("split-per-abi")?.toString() != "true") {
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(avalonTargetAbis)
+            }
+        }
         applicationId = "com.masteralanlab.avalon"
         minSdk = flutter.minSdkVersion
         targetSdk = libs.versions.targetSdk.get().toInt()

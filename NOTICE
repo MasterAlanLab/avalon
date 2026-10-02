@@ -38,6 +38,12 @@ Branched from FlClash v0.8.96 in 2026. The significant changes are:
   * Chain-to-profile binding, entry-group selection, compile diagnostics and path
     preview; export of nodes and chains as Clash config or JSON.
 
+  * Embedded Tailscale session management, device inspection, Tailnet/subnet
+    routing and exit-node preferences, with shared desktop and Android core APIs.
+
+  * Desktop system-proxy integration, activity-aware UI telemetry and native
+    window/IPC lifecycle improvements.
+
   * Renaming of the project and its identifiers: application name (FlClash ->
     Avalon), Dart package (fl_clash -> avalon), application identifiers
     (com.follow.clash -> com.masteralanlab.avalon), core and helper executables

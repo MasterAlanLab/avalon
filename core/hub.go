@@ -44,6 +44,7 @@ func handleInitClash(params *InitParams) bool {
 	version = params.Version
 	constant.SetHomeDir(params.HomeDir)
 	isInit.Store(true)
+	managedTS.Init(params.HomeDir)
 	return true
 }
 
@@ -58,6 +59,7 @@ func handleStartListener() bool {
 		return false
 	}
 	resolver.ResetConnection()
+	tsReportConfig(tsCurrentProfile(), nil)
 	return true
 }
 
@@ -67,6 +69,7 @@ func handleStopListener() bool {
 	isRunning = false
 	listener.StopListener()
 	resolver.ResetConnection()
+	tsReportConfig(tsCurrentProfile(), nil)
 	return true
 }
 
@@ -83,6 +86,7 @@ func handleForceGC() {
 }
 
 func handleShutdown() bool {
+	managedTS.Shutdown()
 	stopListeners()
 	executor.Shutdown()
 	handleForceGC()

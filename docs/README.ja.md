@@ -13,6 +13,8 @@
   </p>
 </div>
 
+[简体中文](../README.md) · [English](README.en.md) · [العربية](README.ar.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
 Android、Windows、macOS、Linux 向けのプロキシクライアント。[mihomo](https://github.com/MetaCubeX/mihomo) をコアに採用し、独立したノード管理、サブスクリプション管理、マルチホップのプロキシチェーンに対応しています。Flutter で開発されています。
 
 > Avalon は [FlClash](https://github.com/chen08209/FlClash) をベースに開発されています。
@@ -31,6 +33,7 @@ Android、Windows、macOS、Linux 向けのプロキシクライアント。[mih
 - ネットワーク診断：ノードの遅延テスト、リアルタイムの接続確認、実行ログ。
 - データ同期：ローカルのバックアップ・復元、WebDAV による同期。
 - テーマ：デスクトップ・モバイル向けレイアウト、ダークモード、配色のカスタマイズ。
+- Tailscale：デバイスの確認、Tailnet のルーティング、リモートサブネットと出口ノードの設定。
 
 ## 動作モード
 
@@ -40,7 +43,7 @@ Android、Windows、macOS、Linux 向けのプロキシクライアント。[mih
 | Global | コアに入るすべての通信を、グローバルプロキシグループで選択した経路に転送 |
 | Direct | プロキシノードを使わず、接続先へ直接接続 |
 
-通信の取り込みにはシステムプロキシと TUN を利用できます。システムプロキシはシステム設定に従うアプリ向けです。TUN は仮想ネットワークインターフェースで通信を取り込み、選択したモードに従って振り分けます。
+デスクトップはシステムプロキシと TUN、Android は VPN サービスで通信を取り込みます。システムプロキシの対象はプロキシ設定に従うアプリのみです。TUN/VPN の対象はルート、IPv6、アクセス制御の設定に従います。
 
 ## コアエンジン
 
@@ -48,41 +51,21 @@ Android、Windows、macOS、Linux 向けのプロキシクライアント。[mih
 
 サブスクリプション、ノードライブラリ、プロキシチェーンを統合して実行設定を生成します。チェーンは `dialer-proxy` で各ホップをつなぎ、「クライアント → 前段プロキシ → メインノード → 後段プロキシ → 接続先」の順に、単一のコアインスタンスで接続を処理します。
 
-## ビルド
+## 開発
+
+リポジトリのルートで実行します。CI は Flutter 3.44.4 と Go 1.26.4 を使用し、ネイティブコンポーネントには Rust と各プラットフォームのツールチェーンも必要です。
 
 ```bash
-git clone --recurse-submodules https://github.com/MasterAlanLab/avalon.git
-cd avalon
 flutter pub get
-```
-
-ビルドには Flutter、Go、Rust が必要です。現在の CI は Flutter 3.44.4 と Go 1.26.4 を使用しています。各プラットフォームのコマンドと追加の依存関係は以下のとおりです。
-
-| プラットフォーム | ビルドコマンド | 追加の依存関係 |
-| :--- | :--- | :--- |
-| Android | `dart setup.dart android` | Android SDK、NDK。`ANDROID_NDK` を設定 |
-| Windows | `dart setup.dart windows` | Visual Studio C++ ツールチェーン、GCC、Inno Setup |
-| macOS | `dart setup.dart macos` | Xcode、CocoaPods、Node.js / npm |
-| Linux | `dart setup.dart linux` | スクリプトが apt で GTK、AppIndicator、Keybinder などをインストール |
-
-デスクトップ版は対象の OS 上でビルドします。成果物は `dist/` に保存されます。環境設定の詳細は [ビルドワークフロー](../.github/workflows/build.yaml) を参照してください。
-
-## テスト
-
-```bash
-# 静的解析
 flutter analyze --no-fatal-infos
-
-# ユニット・ウィジェットテスト
 flutter test
-
-# Go コアラッパーのテスト
-(cd core && go test .)
-
-# Rust コンポーネントのテスト
-cargo test --manifest-path services/helper/Cargo.toml
-cargo test --manifest-path plugins/rust_api/rust/Cargo.toml
 ```
+
+## ドキュメント
+
+- [開発とビルド（中国語）](development.md)：環境設定、コアとアプリのビルド、テスト、コード生成、CI。
+- [Tailscale（中国語）](tailscale.md)：ログイン、ルーティング、出口ノード、ID 管理、既知の問題。
+- [リリースワークフロー](../.github/workflows/build.yaml)：プラットフォーム別のパッケージとリリース設定。
 
 ## 技術スタック
 

@@ -74,6 +74,10 @@ void main() {
       if (entry.key == 'access control') {
         await tester.pump(const Duration(milliseconds: 301));
       }
+      if (entry.key == 'tools') {
+        expect(find.text('Configure Tailscale network'), findsOneWidget);
+        expect(find.text(AppLocalizations.current.tsIntro), findsNothing);
+      }
       final scrollables = find.byType(Scrollable);
       if (scrollables.evaluate().isNotEmpty) {
         for (var index = 0; index < 8; index++) {

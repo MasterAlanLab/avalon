@@ -4993,6 +4993,921 @@ class AppLocalizations {
       args: [],
     );
   }
+
+  /// `Tailscale`
+  String get tailscale {
+    return Intl.message('Tailscale', name: 'tailscale', desc: '', args: []);
+  }
+
+  /// `Configure Tailscale network`
+  String get tailscaleDesc {
+    return Intl.message(
+      'Configure Tailscale network',
+      name: 'tailscaleDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Connect to your Tailscale network`
+  String get tsIntro {
+    return Intl.message(
+      'Connect to your Tailscale network',
+      name: 'tsIntro',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Loading`
+  String get tsLoading {
+    return Intl.message('Loading', name: 'tsLoading', desc: '', args: []);
+  }
+
+  /// `Not signed in`
+  String get tsLoggedOut {
+    return Intl.message(
+      'Not signed in',
+      name: 'tsLoggedOut',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Awaiting authorization`
+  String get tsAuthorizing {
+    return Intl.message(
+      'Awaiting authorization',
+      name: 'tsAuthorizing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Awaiting approval`
+  String get tsWaitingApproval {
+    return Intl.message(
+      'Awaiting approval',
+      name: 'tsWaitingApproval',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Connecting`
+  String get tsConnecting {
+    return Intl.message('Connecting', name: 'tsConnecting', desc: '', args: []);
+  }
+
+  /// `Signed in`
+  String get tsLoggedIn {
+    return Intl.message('Signed in', name: 'tsLoggedIn', desc: '', args: []);
+  }
+
+  /// `Paused`
+  String get tsPaused {
+    return Intl.message('Paused', name: 'tsPaused', desc: '', args: []);
+  }
+
+  /// `Stopping`
+  String get tsStopping {
+    return Intl.message('Stopping', name: 'tsStopping', desc: '', args: []);
+  }
+
+  /// `Sign in again`
+  String get tsNeedsLogin {
+    return Intl.message(
+      'Sign in again',
+      name: 'tsNeedsLogin',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Disconnected`
+  String get tsBackendDisconnected {
+    return Intl.message(
+      'Disconnected',
+      name: 'tsBackendDisconnected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Service stopped`
+  String get tsServiceStopped {
+    return Intl.message(
+      'Service stopped',
+      name: 'tsServiceStopped',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No profile selected`
+  String get tsNoProfile {
+    return Intl.message(
+      'No profile selected',
+      name: 'tsNoProfile',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Rule mode only`
+  String get tsRuleRequired {
+    return Intl.message(
+      'Rule mode only',
+      name: 'tsRuleRequired',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Applies to proxy traffic only`
+  String get tsProxyOnly {
+    return Intl.message(
+      'Applies to proxy traffic only',
+      name: 'tsProxyOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `IPv6 inactive`
+  String get tsIPv6Missing {
+    return Intl.message(
+      'IPv6 inactive',
+      name: 'tsIPv6Missing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Subnet overlaps the local network`
+  String get tsSubnetConflict {
+    return Intl.message(
+      'Subnet overlaps the local network',
+      name: 'tsSubnetConflict',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Server connection interrupted`
+  String get tsControlWarning {
+    return Intl.message(
+      'Server connection interrupted',
+      name: 'tsControlWarning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Active`
+  String get tsActive {
+    return Intl.message('Active', name: 'tsActive', desc: '', args: []);
+  }
+
+  /// `Inactive`
+  String get tsInactive {
+    return Intl.message('Inactive', name: 'tsInactive', desc: '', args: []);
+  }
+
+  /// `Partially active`
+  String get tsPartial {
+    return Intl.message(
+      'Partially active',
+      name: 'tsPartial',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pending`
+  String get tsPending {
+    return Intl.message('Pending', name: 'tsPending', desc: '', args: []);
+  }
+
+  /// `Off`
+  String get tsOff {
+    return Intl.message('Off', name: 'tsOff', desc: '', args: []);
+  }
+
+  /// `Related connections stopped`
+  String get tsBlocked {
+    return Intl.message(
+      'Related connections stopped',
+      name: 'tsBlocked',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Using original routing`
+  String get tsFallback {
+    return Intl.message(
+      'Using original routing',
+      name: 'tsFallback',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Testing`
+  String get tsTesting {
+    return Intl.message('Testing', name: 'tsTesting', desc: '', args: []);
+  }
+
+  /// `Test passed`
+  String get tsProbeSuccess {
+    return Intl.message(
+      'Test passed',
+      name: 'tsProbeSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Test failed`
+  String get tsProbeFailed {
+    return Intl.message(
+      'Test failed',
+      name: 'tsProbeFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancelled`
+  String get tsCancelled {
+    return Intl.message('Cancelled', name: 'tsCancelled', desc: '', args: []);
+  }
+
+  /// `Result expired`
+  String get tsProbeExpired {
+    return Intl.message(
+      'Result expired',
+      name: 'tsProbeExpired',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Direct`
+  String get tsDirectPath {
+    return Intl.message('Direct', name: 'tsDirectPath', desc: '', args: []);
+  }
+
+  /// `Relay`
+  String get tsDerpPath {
+    return Intl.message('Relay', name: 'tsDerpPath', desc: '', args: []);
+  }
+
+  /// `Peer relay`
+  String get tsPeerRelay {
+    return Intl.message('Peer relay', name: 'tsPeerRelay', desc: '', args: []);
+  }
+
+  /// `Exit node not approved`
+  String get tsUnapprovedExit {
+    return Intl.message(
+      'Exit node not approved',
+      name: 'tsUnapprovedExit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Tailscale is not enabled in this version`
+  String get tsUnsupported {
+    return Intl.message(
+      'Tailscale is not enabled in this version',
+      name: 'tsUnsupported',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Profile update failed; previous settings kept`
+  String get tsApplyFailed {
+    return Intl.message(
+      'Profile update failed; previous settings kept',
+      name: 'tsApplyFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Auth key rejected as invalid`
+  String get tsAuthInvalid {
+    return Intl.message(
+      'Auth key rejected as invalid',
+      name: 'tsAuthInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Auth key expired`
+  String get tsAuthExpired {
+    return Intl.message(
+      'Auth key expired',
+      name: 'tsAuthExpired',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Auth key already used`
+  String get tsAuthUsed {
+    return Intl.message(
+      'Auth key already used',
+      name: 'tsAuthUsed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sign-in rejected by server`
+  String get tsAuthRejected {
+    return Intl.message(
+      'Sign-in rejected by server',
+      name: 'tsAuthRejected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Server connection failed`
+  String get tsServerUnreachable {
+    return Intl.message(
+      'Server connection failed',
+      name: 'tsServerUnreachable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sign-out incomplete; try again`
+  String get tsLogoutFailed {
+    return Intl.message(
+      'Sign-out incomplete; try again',
+      name: 'tsLogoutFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Use a valid address; remote servers require HTTPS`
+  String get tsInvalidServer {
+    return Intl.message(
+      'Use a valid address; remote servers require HTTPS',
+      name: 'tsInvalidServer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unknown`
+  String get tsUnknown {
+    return Intl.message('Unknown', name: 'tsUnknown', desc: '', args: []);
+  }
+
+  /// `Routing`
+  String get tsSplit {
+    return Intl.message('Routing', name: 'tsSplit', desc: '', args: []);
+  }
+
+  /// `Exit node`
+  String get tsExit {
+    return Intl.message('Exit node', name: 'tsExit', desc: '', args: []);
+  }
+
+  /// `This device`
+  String get tsThisDevice {
+    return Intl.message(
+      'This device',
+      name: 'tsThisDevice',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Key expiry`
+  String get tsKeyExpiry {
+    return Intl.message('Key expiry', name: 'tsKeyExpiry', desc: '', args: []);
+  }
+
+  /// `Not provided`
+  String get tsNotProvided {
+    return Intl.message(
+      'Not provided',
+      name: 'tsNotProvided',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Showing cached information`
+  String get tsCachedWarning {
+    return Intl.message(
+      'Showing cached information',
+      name: 'tsCachedWarning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Resume`
+  String get tsResume {
+    return Intl.message('Resume', name: 'tsResume', desc: '', args: []);
+  }
+
+  /// `Pause`
+  String get tsPause {
+    return Intl.message('Pause', name: 'tsPause', desc: '', args: []);
+  }
+
+  /// `Sign out`
+  String get tsLogout {
+    return Intl.message('Sign out', name: 'tsLogout', desc: '', args: []);
+  }
+
+  /// `Sign out and clear local sign-in data?`
+  String get tsLogoutConfirm {
+    return Intl.message(
+      'Sign out and clear local sign-in data?',
+      name: 'tsLogoutConfirm',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Retry`
+  String get tsRetry {
+    return Intl.message('Retry', name: 'tsRetry', desc: '', args: []);
+  }
+
+  /// `Custom server`
+  String get tsCustomServer {
+    return Intl.message(
+      'Custom server',
+      name: 'tsCustomServer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Server URL`
+  String get tsControlServer {
+    return Intl.message(
+      'Server URL',
+      name: 'tsControlServer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Auth key`
+  String get tsAuthKey {
+    return Intl.message('Auth key', name: 'tsAuthKey', desc: '', args: []);
+  }
+
+  /// `Browser sign-in`
+  String get tsBrowserLogin {
+    return Intl.message(
+      'Browser sign-in',
+      name: 'tsBrowserLogin',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Key sign-in`
+  String get tsKeyLogin {
+    return Intl.message('Key sign-in', name: 'tsKeyLogin', desc: '', args: []);
+  }
+
+  /// `Open browser`
+  String get tsOpenBrowser {
+    return Intl.message(
+      'Open browser',
+      name: 'tsOpenBrowser',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Authorization QR code`
+  String get tsQRCode {
+    return Intl.message(
+      'Authorization QR code',
+      name: 'tsQRCode',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancel authorization`
+  String get tsCancelLogin {
+    return Intl.message(
+      'Cancel authorization',
+      name: 'tsCancelLogin',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Not tested`
+  String get tsNotTested {
+    return Intl.message('Not tested', name: 'tsNotTested', desc: '', args: []);
+  }
+
+  /// `OS`
+  String get tsOS {
+    return Intl.message('OS', name: 'tsOS', desc: '', args: []);
+  }
+
+  /// `Online`
+  String get tsOnline {
+    return Intl.message('Online', name: 'tsOnline', desc: '', args: []);
+  }
+
+  /// `Offline`
+  String get tsOffline {
+    return Intl.message('Offline', name: 'tsOffline', desc: '', args: []);
+  }
+
+  /// `Last online`
+  String get tsLastSeen {
+    return Intl.message('Last online', name: 'tsLastSeen', desc: '', args: []);
+  }
+
+  /// `Check device connectivity`
+  String get tsProbeExplanation {
+    return Intl.message(
+      'Check device connectivity',
+      name: 'tsProbeExplanation',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Subnet routes`
+  String get tsApprovedRoutes {
+    return Intl.message(
+      'Subnet routes',
+      name: 'tsApprovedRoutes',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Test connection`
+  String get tsTest {
+    return Intl.message('Test connection', name: 'tsTest', desc: '', args: []);
+  }
+
+  /// `Use as exit`
+  String get tsUseExit {
+    return Intl.message('Use as exit', name: 'tsUseExit', desc: '', args: []);
+  }
+
+  /// `Search devices`
+  String get tsSearch {
+    return Intl.message('Search devices', name: 'tsSearch', desc: '', args: []);
+  }
+
+  /// `All`
+  String get tsAll {
+    return Intl.message('All', name: 'tsAll', desc: '', args: []);
+  }
+
+  /// `Test listed devices`
+  String get tsTestAll {
+    return Intl.message(
+      'Test listed devices',
+      name: 'tsTestAll',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancel tests`
+  String get tsStopTests {
+    return Intl.message(
+      'Cancel tests',
+      name: 'tsStopTests',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refresh devices`
+  String get tsRefreshDevices {
+    return Intl.message(
+      'Refresh devices',
+      name: 'tsRefreshDevices',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No other devices visible`
+  String get tsNoDevices {
+    return Intl.message(
+      'No other devices visible',
+      name: 'tsNoDevices',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No matching devices`
+  String get tsNoSearchResults {
+    return Intl.message(
+      'No matching devices',
+      name: 'tsNoSearchResults',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `View device details`
+  String get tsSelectDevice {
+    return Intl.message(
+      'View device details',
+      name: 'tsSelectDevice',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Automatic routing`
+  String get tsAutoRoute {
+    return Intl.message(
+      'Automatic routing',
+      name: 'tsAutoRoute',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Access Tailscale devices in Rule mode`
+  String get tsAutoRouteDesc {
+    return Intl.message(
+      'Access Tailscale devices in Rule mode',
+      name: 'tsAutoRouteDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Accept subnet routes`
+  String get tsAcceptRoutes {
+    return Intl.message(
+      'Accept subnet routes',
+      name: 'tsAcceptRoutes',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Access shared subnets through TUN`
+  String get tsAcceptRoutesDesc {
+    return Intl.message(
+      'Access shared subnets through TUN',
+      name: 'tsAcceptRoutesDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Signing in does not expose local services`
+  String get tsEmbeddedNote {
+    return Intl.message(
+      'Signing in does not expose local services',
+      name: 'tsEmbeddedNote',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Active`
+  String get tsAccepted {
+    return Intl.message('Active', name: 'tsAccepted', desc: '', args: []);
+  }
+
+  /// `Available`
+  String get tsAvailable {
+    return Intl.message('Available', name: 'tsAvailable', desc: '', args: []);
+  }
+
+  /// `Keep local`
+  String get tsKeepLocal {
+    return Intl.message('Keep local', name: 'tsKeepLocal', desc: '', args: []);
+  }
+
+  /// `Use remote`
+  String get tsUseRemote {
+    return Intl.message('Use remote', name: 'tsUseRemote', desc: '', args: []);
+  }
+
+  /// `Use the remote route? Local access to this subnet will be affected`
+  String get tsRemoteWarning {
+    return Intl.message(
+      'Use the remote route? Local access to this subnet will be affected',
+      name: 'tsRemoteWarning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Access the Internet through an exit node`
+  String get tsExitDesc {
+    return Intl.message(
+      'Access the Internet through an exit node',
+      name: 'tsExitDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exit node`
+  String get tsExitDevice {
+    return Intl.message('Exit node', name: 'tsExitDevice', desc: '', args: []);
+  }
+
+  /// `Exit node unavailable`
+  String get tsMissingExit {
+    return Intl.message(
+      'Exit node unavailable',
+      name: 'tsMissingExit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Selected groups`
+  String get tsSelectedGroups {
+    return Intl.message(
+      'Selected groups',
+      name: 'tsSelectedGroups',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `All Internet traffic`
+  String get tsAllPublic {
+    return Intl.message(
+      'All Internet traffic',
+      name: 'tsAllPublic',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Closes related connections when switching`
+  String get tsOriginalRouting {
+    return Intl.message(
+      'Closes related connections when switching',
+      name: 'tsOriginalRouting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Applies to groups matched directly by rules`
+  String get tsGroupSemantics {
+    return Intl.message(
+      'Applies to groups matched directly by rules',
+      name: 'tsGroupSemantics',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No groups available`
+  String get tsNoGroups {
+    return Intl.message(
+      'No groups available',
+      name: 'tsNoGroups',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Group not found`
+  String get tsMissingGroup {
+    return Intl.message(
+      'Group not found',
+      name: 'tsMissingGroup',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `When the exit is unavailable`
+  String get tsWhenUnavailable {
+    return Intl.message(
+      'When the exit is unavailable',
+      name: 'tsWhenUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Stop related connections`
+  String get tsStopConnections {
+    return Intl.message(
+      'Stop related connections',
+      name: 'tsStopConnections',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Use original routing`
+  String get tsReturnOriginal {
+    return Intl.message(
+      'Use original routing',
+      name: 'tsReturnOriginal',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Devices`
+  String get tsDevices {
+    return Intl.message('Devices', name: 'tsDevices', desc: '', args: []);
+  }
+
+  /// `Routing`
+  String get tsRouting {
+    return Intl.message('Routing', name: 'tsRouting', desc: '', args: []);
+  }
+
+  /// `No groups selected`
+  String get tsNoBinding {
+    return Intl.message(
+      'No groups selected',
+      name: 'tsNoBinding',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Some groups are missing`
+  String get tsMissingBinding {
+    return Intl.message(
+      'Some groups are missing',
+      name: 'tsMissingBinding',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Waiting for routing to apply`
+  String get tsCapturePending {
+    return Intl.message(
+      'Waiting for routing to apply',
+      name: 'tsCapturePending',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Routing failed; check network settings`
+  String get tsCaptureFailed {
+    return Intl.message(
+      'Routing failed; check network settings',
+      name: 'tsCaptureFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Invalid sign-in link; try again`
+  String get tsInvalidAuthURL {
+    return Intl.message(
+      'Invalid sign-in link; try again',
+      name: 'tsInvalidAuthURL',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Operation failed; try again`
+  String get tsBackendError {
+    return Intl.message(
+      'Operation failed; try again',
+      name: 'tsBackendError',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1,4 +1,4 @@
-//go:build !cgo
+//go:build !android || !cgo
 
 package main
 
@@ -122,7 +122,7 @@ func startServer(arg string) {
 		err = json.Unmarshal(data, call)
 
 		if err != nil {
-			logError("server unmarshal error: %v (data: %q)", err, data)
+			logError("server unmarshal error: invalid JSON frame (%d bytes)", len(data))
 			continue
 		}
 

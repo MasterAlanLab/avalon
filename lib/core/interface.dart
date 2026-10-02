@@ -30,9 +30,7 @@ abstract class CoreHandlerInterface {
     }
     return await utils.handleWatch(
       onStart: () {
-        commonPrint.log(
-          'Invoke method ${method.name} ${DateTime.now()} $arguments',
-        );
+        commonPrint.log('Invoke method ${method.name} ${DateTime.now()}');
       },
       function: invoke,
       onEnd: (result, elapsedMilliseconds) {
@@ -48,6 +46,23 @@ abstract class CoreHandlerInterface {
     Object? arguments,
     Duration? timeout,
   });
+
+  Future<Map<String, dynamic>> tailscale(
+    CoreMethod method, [
+    Object? arguments,
+  ]) async {
+    final data = await _invokeMethod<Map<String, dynamic>>(
+      method: method,
+      arguments: arguments,
+    );
+    if (data == null) {
+      throw const CoreMethodException(
+        code: 'transport_disconnected',
+        message: 'Core connection unavailable',
+      );
+    }
+    return data;
+  }
 
   Future<bool> init(InitParams params) async {
     return await _invokeMethod<bool>(
@@ -244,9 +259,7 @@ abstract class CoreHandlerInterface {
   }
 
   Future<List<Log>> getLogs() async {
-    final data = await _invokeMethod<List<dynamic>>(
-      method: CoreMethod.getLogs,
-    );
+    final data = await _invokeMethod<List<dynamic>>(method: CoreMethod.getLogs);
     return data
             ?.whereType<Map>()
             .map((item) => Log.fromJson(Map<String, Object?>.from(item)))

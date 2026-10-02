@@ -1,3 +1,5 @@
+//go:build android && cgo
+
 #include "bride.h"
 
 void (*release_object_func)(void *obj);

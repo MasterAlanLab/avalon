@@ -105,6 +105,14 @@ object ServiceController {
         runTimeMillis
     }
 
+    suspend fun reconfigureVpn(options: VpnOptions): Result<Unit> = lock.withLock {
+        val current = binding ?: return@withLock Result.success(Unit)
+        if (runTimeMillis == 0L || !options.enable) return@withLock Result.success(Unit)
+        current.useService { service ->
+            if (service is VpnService) service.reconfigure(options)
+        }
+    }
+
     suspend fun stop() = lock.withLock {
         binding?.useService { service -> service.stop() }
             ?.onFailure { error ->

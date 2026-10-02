@@ -36,6 +36,7 @@ class _RecordingCoreHandler extends CoreHandlerInterface {
     calls[method] = arguments;
     final result = switch (method) {
       CoreMethod.initClash => true as T,
+      CoreMethod.tailscaleLogin => {'session': 'authorizing'},
       CoreMethod.getTraffic ||
       CoreMethod.getTotalTraffic => {'up': 12, 'down': 34},
       CoreMethod.asyncTestDelay => {
@@ -157,7 +158,6 @@ void main() {
 
   test('core interface sends structured request parameters', () async {
     final handler = _RecordingCoreHandler();
-
     await handler.init(const InitParams(homeDir: '/tmp/avalon', version: 35));
     await handler.setupConfig(
       const SetupParams(selectedMap: {'GLOBAL': 'DIRECT'}, testUrl: 'test'),
@@ -168,9 +168,16 @@ void main() {
     await handler.sideLoadExternalProvider(providerName: 'provider', data: 'x');
     await handler.asyncTestDelay('https://example.com', 'DIRECT');
     await handler.clearEffect(42);
+    const sensitive = {
+      'kind': 'key',
+      'authKey': 'fixture-auth-secret',
+      'control': 'https://HOST/a/TOKEN',
+    };
+    await handler.tailscale(CoreMethod.tailscaleLogin, sensitive);
 
     for (final method in [
       CoreMethod.initClash,
+      CoreMethod.tailscaleLogin,
       CoreMethod.setupConfig,
       CoreMethod.changeProxy,
       CoreMethod.sideLoadExternalProvider,
@@ -179,6 +186,7 @@ void main() {
       expect(handler.calls[method], isA<Map>());
     }
     expect(handler.calls[CoreMethod.clearEffect], 42);
+    expect(handler.calls[CoreMethod.tailscaleLogin], sensitive);
   });
 
   test('event contract accepts batches and legacy single events', () async {

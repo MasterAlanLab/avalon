@@ -1,6 +1,7 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:avalon/common/common.dart';
 import 'package:avalon/core/controller.dart';
+import 'package:avalon/features/tailscale/provider.dart';
 import 'package:avalon/database/database.dart';
 import 'package:avalon/enum/enum.dart';
 import 'package:avalon/models/models.dart';
@@ -166,10 +167,7 @@ TrayTitleState trayTitleState(Ref ref) {
     appSettingProvider.select((state) => state.showTrayTitle),
   );
   if (!showTrayTitle) {
-    return const TrayTitleState(
-      showTrayTitle: false,
-      traffic: Traffic(),
-    );
+    return const TrayTitleState(showTrayTitle: false, traffic: Traffic());
   }
   final traffic = ref.watch(
     trafficsProvider.select((state) => state.list.safeLast(const Traffic())),
@@ -595,13 +593,32 @@ SharedState sharedState(Ref ref) {
   final testUrl = appSettingVM2.b;
   final stack = clashConfigVM2.a;
   final port = clashConfigVM2.b;
+  final tun = ref.watch(patchClashConfigProvider).tun;
+  final routeMode = ref.watch(networkSettingProvider).routeMode;
+  final baseRoutes = tun.getRealTun(routeMode).routeAddress;
+  final prefixes = ref.watch(
+    tailscaleProvider.select((s) => s.snapshot.capturePrefixes),
+  );
+  final routes =
+      baseRoutes.isEmpty
+            ? <String>[]
+            : <String>{
+                ...baseRoutes,
+                if (ref.watch(patchClashConfigProvider).mode == Mode.rule)
+                  ...prefixes.where((p) => vpnSetting.ipv6 || !p.contains(':')),
+              }.toList()
+        ..sort();
   return SharedState(
     currentProfileName: currentProfileName,
     onlyStatisticsProxy: onlyStatisticsProxy,
     stopText: currentAppLocalizations.stop,
     stopTip: currentAppLocalizations.stopVpn,
     startTip: currentAppLocalizations.startVpn,
-    setupParams: SetupParams(selectedMap: selectedMap, testUrl: testUrl),
+    setupParams: SetupParams(
+      profileId: ref.watch(currentProfileIdProvider) ?? 0,
+      selectedMap: selectedMap,
+      testUrl: testUrl,
+    ),
     vpnOptions: VpnOptions(
       enable: vpnSetting.enable,
       stack: stack,
@@ -612,6 +629,7 @@ SharedState sharedState(Ref ref) {
       accessControlProps: vpnSetting.accessControlProps,
       allowBypass: vpnSetting.allowBypass,
       bypassDomain: bypassDomain,
+      routeAddress: routes,
     ),
   );
 }
