@@ -1,0 +1,47 @@
+{
+  "log": {"level": "info"},
+  "dns": {"servers": []},
+  "inbounds": [{"type": "mixed", "listen_port": 2080}],
+  "experimental": {"clash_api": {}},
+  "endpoints": [{"type": "wireguard", "tag": "wg"}],
+  "outbounds": [
+    {"type": "selector", "tag": "Proxy", "outbounds": ["auto", "hk", "jp", "gone", "direct"]},
+    {"type": "urltest", "tag": "auto", "outbounds": ["hk", "jp"], "url": "https://cp.cloudflare.com", "interval": "3m", "tolerance": 100},
+    {"type": "vless", "tag": "hk", "server": "hk.example.com", "server_port": 443,
+     "uuid": "00000000-0000-4000-8000-000000000001", "flow": "xtls-rprx-vision",
+     "tls": {"enabled": true, "server_name": "www.apple.com",
+             "utls": {"enabled": true, "fingerprint": "chrome"},
+             "reality": {"enabled": true, "public_key": "fakeRealityPublicKey0000000000000000000000A", "short_id": "ab"}},
+     "tcp_fast_open": true},
+    {"type": "hysteria2", "tag": "jp", "server": "jp.example.com", "server_port": 443,
+     "password": "fake-hy2", "obfs": {"type": "salamander", "password": "fake-obfs"},
+     "up_mbps": 50, "down_mbps": 200,
+     "tls": {"enabled": true, "server_name": "jp.example.com", "insecure": true}},
+    {"type": "shadowsocks", "tag": "ss", "server": "1.2.3.4", "server_port": 8388,
+     "method": "aes-256-gcm", "password": "fake-ss", "multiplex": {"enabled": true}},
+    {"type": "vmess", "tag": "quic", "server": "q.example.com", "server_port": 443,
+     "uuid": "00000000-0000-4000-8000-000000000002", "transport": {"type": "quic"}},
+    {"type": "wireguard", "tag": "wg-old"},
+    {"type": "direct", "tag": "direct"},
+    {"type": "block", "tag": "block"}
+  ],
+  "route": {
+    "rules": [
+      {"action": "sniff"},
+      {"protocol": "dns", "action": "hijack-dns"},
+      {"clash_mode": "Direct", "outbound": "direct"},
+      {"domain_suffix": ["google.com", "youtube.com"], "outbound": "Proxy"},
+      {"rule_set": "geosite-cn", "outbound": "direct"},
+      {"port": [22, "25"], "port_range": ["1000:2000"], "network": "tcp", "outbound": "block"},
+      {"type": "logical", "mode": "and", "rules": [], "outbound": "direct"},
+      {"ip_is_private": true, "outbound": "direct"},
+      {"rule_set": "local-set", "outbound": "direct"},
+      {"domain": "a.com", "action": "reject"}
+    ],
+    "rule_set": [
+      {"type": "remote", "tag": "geosite-cn", "format": "binary", "url": "https://example.com/geosite-cn.srs"},
+      {"type": "local", "tag": "local-set", "format": "source", "path": "/tmp/x.json"}
+    ],
+    "final": "Proxy"
+  }
+}

@@ -1,0 +1,11 @@
+# Dart pub workspace (D40). Members resolve together and share one lockfile.
+name: avalon_workspace
+publish_to: 'none'
+
+environment:
+  sdk: ^3.12.2
+
+workspace:
+  - app
+  - packages/av_core
+  - packages/av_design

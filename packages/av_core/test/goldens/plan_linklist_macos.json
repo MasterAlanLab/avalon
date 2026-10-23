@@ -1,0 +1,199 @@
+{
+  "log": {
+    "level": "info"
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "https",
+        "tag": "remote",
+        "server": "1.1.1.1",
+        "path": "/dns-query",
+        "detour": "g:65fe08d521"
+      },
+      {
+        "type": "udp",
+        "tag": "direct",
+        "server": "223.5.5.5"
+      },
+      {
+        "type": "fakeip",
+        "tag": "fakeip",
+        "inet4_range": "198.18.0.0/15"
+      }
+    ],
+    "rules": [
+      {
+        "clash_mode": "direct",
+        "server": "direct"
+      },
+      {
+        "rule_set": "geosite-cn",
+        "server": "direct"
+      },
+      {
+        "query_type": [
+          "A",
+          "AAAA"
+        ],
+        "server": "fakeip"
+      }
+    ],
+    "final": "remote",
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": [
+        "172.19.0.1/30"
+      ],
+      "mtu": 9000,
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "mixed"
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 7890
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "vless",
+      "tag": "n:cfg-link:559aead082",
+      "server": "a.example.com",
+      "server_port": 443,
+      "uuid": "••••",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.apple.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "fakeRealityPublicKey0000000000000000000000A"
+        }
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "n:cfg-link:df7e70e502",
+      "server": "b.example.com",
+      "server_port": 443,
+      "password": "••••",
+      "tls": {
+        "enabled": true,
+        "server_name": "b.example.com"
+      }
+    },
+    {
+      "type": "urltest",
+      "tag": "g:ccbf57db77",
+      "outbounds": [
+        "n:cfg-link:559aead082",
+        "n:cfg-link:df7e70e502"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "180s",
+      "tolerance": 50,
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "selector",
+      "tag": "g:65fe08d521",
+      "outbounds": [
+        "g:ccbf57db77",
+        "n:cfg-link:559aead082",
+        "n:cfg-link:df7e70e502"
+      ],
+      "default": "g:ccbf57db77",
+      "interrupt_exist_connections": true
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "type": "logical",
+        "mode": "and",
+        "rules": [
+          {
+            "clash_mode": "direct"
+          },
+          {
+            "clash_mode": "rule",
+            "invert": true
+          }
+        ],
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "global",
+        "outbound": "g:65fe08d521"
+      },
+      {
+        "rule_set": "geosite-cn",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": "geoip-cn",
+        "outbound": "direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "download_detour": "g:65fe08d521"
+      },
+      {
+        "type": "remote",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "download_detour": "g:65fe08d521"
+      }
+    ],
+    "final": "g:65fe08d521",
+    "auto_detect_interface": true,
+    "find_process": true,
+    "default_domain_resolver": "direct"
+  },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "secret": "••••",
+      "external_ui": "ui",
+      "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+      "external_ui_download_detour": "g:65fe08d521",
+      "default_mode": "rule"
+    },
+    "cache_file": {
+      "enabled": true,
+      "path": "/state/cache.db",
+      "store_fakeip": true
+    }
+  }
+}

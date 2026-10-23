@@ -1,0 +1,17 @@
+{
+  "lockVersion": 1,
+  "currentVersion": "0.2.0",
+  "currentFiles": [
+    "cloud.openapi.yaml",
+    "SYNC_PROTOCOL.md"
+  ],
+  "releases": {
+    "0.1.1": {
+      "cloud.openapi.yaml": "3e8495b773e627f043bcac1b2e0753d7710510b84c77406a79c211ba32f62f13"
+    },
+    "0.2.0": {
+      "SYNC_PROTOCOL.md": "ea24ef46c505e65b7ffca00191e945aa12b25ae5f1a4c9b5a402ca5cfdd62487",
+      "cloud.openapi.yaml": "5b4834dab5903277bd56e870b37dd933625ec24ed89d18bbeff0a4c67894943b"
+    }
+  }
+}

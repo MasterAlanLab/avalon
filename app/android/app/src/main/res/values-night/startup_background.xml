@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The dark startup surface, under the Flutter splash (UI_DESIGN_SYSTEM §5). -->
+    <color name="startup_background">#17191D</color>
+</resources>

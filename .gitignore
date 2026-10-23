@@ -1,0 +1,22 @@
+# Local editor and operating-system files only.
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Dart / Flutter build output (workspace members).
+.dart_tool/
+build/
+
+# Diff images written when a golden test fails.
+**/test/golden/failures/
+
+tmp/
+
+# CI artifacts and local release signing material.
+dist/
+*.jks
+*.keystore
+**/key.properties
+__pycache__/

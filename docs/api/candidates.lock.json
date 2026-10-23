@@ -1,0 +1,16 @@
+{
+  "lockVersion": 1,
+  "candidates": {
+    "0.3.0": {
+      "README.md": "a3b33a81046b9d59dfe15473d48c69fb0028bb9758a3b11eeec61c1860c263c0",
+      "SYNC_PROTOCOL.md": "3431e19ab6b9ea3a9f254515a1f09ca3179b90199a20365f8a53e1c5479289fc",
+      "cloud.openapi.yaml": "e319eccf05a4a858ed0ce5e362f89566e641441ff1db91dfaa400ce5198e9994"
+    },
+    "0.4.0": {
+      "AUTH_BILLING_PROTOCOL.md": "bd3180bb0acc6ea3cfb647fffcb177272952c2ba1ae85d8ebac5b14ddce49b17",
+      "README.md": "3ea21b1d21daa551ad2c6269187640cf1a6e331199348390e2bbf23224d52cf5",
+      "SYNC_PROTOCOL.md": "4e1d500d4e585d00a6800981afbe77dadeba8f80c555204cc83de1378c1802e4",
+      "cloud.openapi.yaml": "e237cff83a269607e07815dfa3e4d63addc2b72cbd373b4cd959d73a61383245"
+    }
+  }
+}

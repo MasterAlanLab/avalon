@@ -1,0 +1,7 @@
+// Shared identifiers for the application and its Packet Tunnel extension.
+// Override these together when signing with registered App IDs and App Groups.
+#include "../Flutter/Generated.xcconfig"
+
+AVALON_APP_GROUP = group.app.getavalon.avalon
+AVALON_TUNNEL_BUNDLE_ID = app.getavalon.avalon.PacketTunnel
+OTHER_LDFLAGS = $(inherited) -lresolv

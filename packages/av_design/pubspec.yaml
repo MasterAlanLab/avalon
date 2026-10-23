@@ -1,0 +1,25 @@
+name: av_design
+description: "Avalon V3 design system: tokens, components, routes and desktop chrome."
+publish_to: 'none'
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^2.3.0
+  material_symbols_icons: ^4.2960.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  assets:
+    - assets/brand/apple.svg
+    - assets/brand/avalon.svg
+    - assets/brand/google_g.svg

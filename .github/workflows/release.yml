@@ -1,0 +1,300 @@
+name: V2 Release
+
+on:
+  push:
+    tags: ['v*']
+
+# Only a version tag can build and publish. Never dispatch this workflow manually.
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  checks:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/ci.yml
+
+  android:
+    name: Android Release / three ABIs
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        id: setup
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install the NDK pinned by Flutter
+        run: python tool/ci/prepare_android.py ndk
+      - name: Require production Android signing
+        id: signing
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: python tool/ci/prepare_android.py signing --require-release
+      - name: Build the real Android Core Bridge
+        working-directory: core
+        run: |
+          ./build.sh tools
+          ./build.sh android arm64,arm,amd64
+      - name: Build ABI-specific Release APKs
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+          AVALON_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          AVALON_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          AVALON_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: flutter build apk --release --split-per-abi --build-number "$BUILD_NUMBER" -t lib/main.dart
+      - name: Package and verify APK signatures
+        env:
+          SIGNING_KIND: ${{ steps.signing.outputs.signing_kind }}
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          test -n "$apksigner"
+          python tool/ci/artifacts.py package --platform android \
+            --android-signing "$SIGNING_KIND" --apksigner "$apksigner" \
+            --build-number "$BUILD_NUMBER"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validation-android-${{ steps.signing.outputs.signing_kind }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Remove the temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/avalon-release.keystore"
+
+  linux:
+    name: Linux / ${{ matrix.arch }}
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        id: setup
+      - name: Install desktop build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev \
+            libsecret-1-dev libjsoncpp-dev libayatana-appindicator3-dev
+      - name: Build the native helper
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: core/build.sh helper linux "$TARGET_ARCH"
+      - name: Build the Linux app
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: flutter build linux --release --build-number "$BUILD_NUMBER" -t lib/main.dart
+      - name: Package the app and matching helper
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: python tool/ci/artifacts.py package --platform linux --arch "$TARGET_ARCH" --build-number "$BUILD_NUMBER"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validation-linux-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  windows:
+    name: Windows / amd64 / build validation
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: checks
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        id: setup
+      - name: Build the native helper
+        run: core/build.sh helper windows amd64
+      - name: Build the Windows app
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: flutter build windows --release --build-number "$BUILD_NUMBER" -t lib/main.dart
+      - name: Package build validation artifacts
+        env:
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: python tool/ci/artifacts.py package --platform windows --arch amd64 --build-number "$BUILD_NUMBER"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validation-windows-amd64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  macos:
+    name: macOS / ${{ matrix.arch }} / unsigned validation
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+            xcode_arch: arm64
+          - runner: macos-15-intel
+            arch: amd64
+            xcode_arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        id: setup
+      - name: Build the Apple Core Bridge
+        working-directory: core
+        run: |
+          ./build.sh tools
+          ./build.sh apple macos
+      - name: Configure the macOS app
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: flutter build macos --release --config-only --build-number "$BUILD_NUMBER" -t lib/main.dart
+      - name: Compile the app and System Extension without team signing
+        working-directory: app
+        env:
+          TARGET_ARCH: ${{ matrix.xcode_arch }}
+        run: >-
+          xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner
+          -configuration Release -derivedDataPath build/macos
+          -destination "platform=macOS,arch=$TARGET_ARCH"
+          "ARCHS=$TARGET_ARCH" ONLY_ACTIVE_ARCH=YES
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= -quiet
+      - name: Package unsigned build validation artifacts
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: python tool/ci/artifacts.py package --platform macos --arch "$TARGET_ARCH" --build-number "$BUILD_NUMBER"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validation-macos-${{ matrix.arch }}-unsigned
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  ios:
+    name: iOS / arm64 / unsigned validation
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: checks
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        id: setup
+      - name: Build the iOS Core Bridge
+        working-directory: core
+        run: |
+          ./build.sh tools
+          ./build.sh apple ios
+      - name: Compile the app and Packet Tunnel without team signing
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: flutter build ios --release --no-codesign --build-number "$BUILD_NUMBER" -t lib/main.dart
+      - name: Package unsigned build validation artifacts
+        env:
+          BUILD_NUMBER: ${{ steps.setup.outputs.build_number }}
+        run: python tool/ci/artifacts.py package --platform ios --arch arm64 --build-number "$BUILD_NUMBER"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validation-ios-arm64-unsigned
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  publish:
+    name: Publish the tagged Android release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [checks, android, linux, windows, macos, ios]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: validation-android-release
+          path: dist/input/android
+      - name: Load V2 history for the release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+            git fetch --no-tags --unshallow origin "$GITHUB_REF"
+          fi
+          major=${RELEASE_TAG%%.*}
+          git fetch --no-tags origin "refs/tags/$major.*:refs/tags/$major.*"
+      - name: Verify release eligibility and assemble public assets
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          test -n "$apksigner"
+          python tool/ci/prepare_release.py --input dist/input/android \
+            --output dist/release --apksigner "$apksigner" --aapt "$(dirname "$apksigner")/aapt"
+      - name: Create the versioned Release with verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          remote_commit=$(git ls-remote --exit-code origin \
+            "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}" \
+            | awk '{ last=$1 } /\^\{\}$/ { peeled=$1 } END { print peeled ? peeled : last }')
+          test "$remote_commit" = "$GITHUB_SHA"
+          # --verify-tag prevents creating tags. A pre-existing Release makes creation fail.
+          gh release create "$RELEASE_TAG" dist/release/* \
+            --verify-tag --draft --title "Avalon ${RELEASE_TAG#v}" \
+            --notes-file dist/release-notes.md
+          # Publish only after every verified asset has uploaded successfully.
+          gh release edit "$RELEASE_TAG" --draft=false

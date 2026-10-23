@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Text shown by the host service, which runs without Flutter. -->
+<resources>
+    <string name="host_notification_channel">Connection</string>
+    <string name="host_notification_title">Avalon is connected</string>
+    <string name="host_notification_stop">Stop</string>
+</resources>

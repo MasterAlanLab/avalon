@@ -1,0 +1,17 @@
+avalon
+
+Avalon — Route · Connect · Control
+Copyright (c) 2026 Avalon contributors.
+SPDX-License-Identifier: AGPL-3.0-only
+
+Avalon code is free software:
+you may redistribute it and/or modify it under the GNU Affero General Public
+License, version 3. The complete, unmodified license text is in LICENSE.
+
+This grant covers the code in this repository unless a file states otherwise.
+It does not relicense third-party code, generated platform scaffolding or the
+sing-box engine. Their original
+licenses and copyright notices remain in force. See THIRD_PARTY_NOTICES.md.
+
+Avalon is distributed without any warranty, including the implied warranties
+of merchantability or fitness for a particular purpose, as provided in LICENSE.

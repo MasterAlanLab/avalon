@@ -1,0 +1,439 @@
+{
+  "log": {
+    "level": "info"
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "https",
+        "tag": "remote",
+        "server": "1.1.1.1",
+        "path": "/dns-query",
+        "detour": "g:65fe08d521"
+      },
+      {
+        "type": "udp",
+        "tag": "direct",
+        "server": "223.5.5.5"
+      },
+      {
+        "type": "fakeip",
+        "tag": "fakeip",
+        "inet4_range": "198.18.0.0/15"
+      }
+    ],
+    "rules": [
+      {
+        "clash_mode": "direct",
+        "server": "direct"
+      },
+      {
+        "rule_set": "geosite-cn",
+        "server": "direct"
+      },
+      {
+        "query_type": [
+          "A",
+          "AAAA"
+        ],
+        "server": "fakeip"
+      }
+    ],
+    "final": "remote",
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": [
+        "172.19.0.1/30"
+      ],
+      "mtu": 9000,
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "mixed",
+      "platform": {
+        "http_proxy": {
+          "enabled": true,
+          "server": "127.0.0.1",
+          "server_port": 7890
+        }
+      },
+      "include_package": [
+        "org.example.browser"
+      ]
+    },
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 7890
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "shadowsocks",
+      "tag": "n:cfg-clas:dcd1520a4f",
+      "server": "1.2.3.4",
+      "server_port": 8388,
+      "method": "aes-256-gcm",
+      "password": "••••",
+      "plugin": "obfs-local",
+      "plugin_opts": "obfs=http;obfs-host=bing.com"
+    },
+    {
+      "type": "vmess",
+      "tag": "n:cfg-clas:e5fbb26f5c",
+      "server": "v.example.com",
+      "server_port": 443,
+      "uuid": "••••",
+      "security": "auto",
+      "alter_id": 0,
+      "tls": {
+        "enabled": true,
+        "server_name": "v.example.com"
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/ray",
+        "headers": {
+          "Host": "v.example.com"
+        }
+      }
+    },
+    {
+      "type": "vless",
+      "tag": "n:cfg-clas:ce1a018b55",
+      "server": "r.example.com",
+      "server_port": 443,
+      "uuid": "••••",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.apple.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "fakeRealityPublicKey0000000000000000000000A",
+          "short_id": "ab"
+        }
+      },
+      "transport": {
+        "type": "grpc",
+        "service_name": "svc"
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "n:cfg-clas:d78e10c3b5",
+      "server": "t.example.com",
+      "server_port": 443,
+      "password": "••••",
+      "tls": {
+        "enabled": true,
+        "server_name": "t.example.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "n:cfg-clas:225b21aaf6",
+      "server": "h.example.com",
+      "server_port": 443,
+      "server_ports": [
+        "20000:30000"
+      ],
+      "up_mbps": 50,
+      "down_mbps": 1000,
+      "password": "••••",
+      "tls": {
+        "enabled": true
+      }
+    },
+    {
+      "type": "tuic",
+      "tag": "n:cfg-clas:00e5ec5d77",
+      "server": "tu.example.com",
+      "server_port": 443,
+      "uuid": "••••",
+      "password": "••••",
+      "congestion_control": "cubic",
+      "tls": {
+        "enabled": true,
+        "alpn": [
+          "h3"
+        ]
+      }
+    },
+    {
+      "type": "socks",
+      "tag": "n:cfg-clas:0161c49f74",
+      "server": "10.0.0.2",
+      "server_port": 1080,
+      "version": "5",
+      "detour": "n:cfg-clas:d78e10c3b5"
+    },
+    {
+      "type": "trojan",
+      "tag": "n:cfg-clas:7a04493c90",
+      "server": "hk1.example.com",
+      "server_port": 443,
+      "password": "••••",
+      "tls": {
+        "enabled": true
+      }
+    },
+    {
+      "type": "http",
+      "tag": "n:cfg-clas:4685e70bc0",
+      "server": "proxy.example.com",
+      "server_port": 8080
+    },
+    {
+      "type": "trojan",
+      "tag": "s:n1",
+      "server": "vps.example.com",
+      "server_port": 443,
+      "password": "••••",
+      "tls": {
+        "enabled": true,
+        "server_name": "vps.example.com"
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "c:ch1:0",
+      "server": "t.example.com",
+      "server_port": 443,
+      "password": "••••",
+      "tls": {
+        "enabled": true,
+        "server_name": "t.example.com",
+        "insecure": true
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "c:ch1:1",
+      "server": "vps.example.com",
+      "server_port": 443,
+      "password": "••••",
+      "tls": {
+        "enabled": true,
+        "server_name": "vps.example.com"
+      },
+      "detour": "c:ch1:0"
+    },
+    {
+      "type": "urltest",
+      "tag": "g:ccbf57db77",
+      "outbounds": [
+        "n:cfg-clas:7a04493c90"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "300s",
+      "tolerance": 50,
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "selector",
+      "tag": "g:65fe08d521",
+      "outbounds": [
+        "g:ccbf57db77",
+        "n:cfg-clas:dcd1520a4f",
+        "n:cfg-clas:ce1a018b55",
+        "direct",
+        "c:ch1:1"
+      ],
+      "default": "c:ch1:1",
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "urltest",
+      "tag": "g:a1bfe4fdaa",
+      "outbounds": [
+        "n:cfg-clas:d78e10c3b5",
+        "n:cfg-clas:225b21aaf6"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "300s",
+      "tolerance": 50,
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "selector",
+      "tag": "g:05c62884c9",
+      "outbounds": [
+        "n:cfg-clas:dcd1520a4f",
+        "n:cfg-clas:e5fbb26f5c",
+        "n:cfg-clas:ce1a018b55",
+        "n:cfg-clas:d78e10c3b5",
+        "n:cfg-clas:225b21aaf6",
+        "n:cfg-clas:00e5ec5d77"
+      ],
+      "default": "n:cfg-clas:dcd1520a4f",
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "selector",
+      "tag": "g:custom",
+      "outbounds": [
+        "s:n1",
+        "c:ch1:1"
+      ],
+      "default": "s:n1",
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "selector",
+      "tag": "Media",
+      "outbounds": [
+        "g:65fe08d521",
+        "direct"
+      ]
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "type": "logical",
+        "mode": "and",
+        "rules": [
+          {
+            "clash_mode": "direct"
+          },
+          {
+            "clash_mode": "rule",
+            "invert": true
+          }
+        ],
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "global",
+        "outbound": "g:65fe08d521"
+      },
+      {
+        "domain_suffix": [
+          "netflix.com"
+        ],
+        "outbound": "Media"
+      },
+      {
+        "domain_suffix": [
+          "google.com"
+        ],
+        "outbound": "g:65fe08d521"
+      },
+      {
+        "rule_set": [
+          "geosite-cn"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "geoip-cn"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "ip_cidr": [
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+          "127.0.0.0/8",
+          "169.254.0.0/16",
+          "100.64.0.0/10",
+          "fc00::/7",
+          "fe80::/10",
+          "::1/128"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "ip_cidr": [
+          "8.8.8.8/32"
+        ],
+        "outbound": "g:65fe08d521"
+      },
+      {
+        "port_range": [
+          "8000:9000"
+        ],
+        "action": "reject"
+      },
+      {
+        "rule_set": [
+          "provider-ads"
+        ],
+        "action": "reject"
+      },
+      {
+        "process_name": [
+          "curl"
+        ],
+        "outbound": "direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+        "download_detour": "g:65fe08d521"
+      },
+      {
+        "type": "remote",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+        "download_detour": "g:65fe08d521"
+      },
+      {
+        "type": "local",
+        "tag": "provider-ads",
+        "format": "source",
+        "path": "/data/state/rulesets/ads.json"
+      }
+    ],
+    "final": "g:65fe08d521",
+    "auto_detect_interface": true,
+    "find_process": true,
+    "default_domain_resolver": "direct"
+  },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "secret": "••••",
+      "external_ui": "ui",
+      "external_ui_download_url": "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+      "external_ui_download_detour": "g:65fe08d521",
+      "default_mode": "rule"
+    },
+    "cache_file": {
+      "enabled": true,
+      "path": "/data/state/cache.db",
+      "store_fakeip": true
+    }
+  }
+}

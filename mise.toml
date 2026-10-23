@@ -1,0 +1,3 @@
+# Toolchain pin: every member of the workspace builds with this Flutter.
+[tools]
+flutter = "3.44.4"

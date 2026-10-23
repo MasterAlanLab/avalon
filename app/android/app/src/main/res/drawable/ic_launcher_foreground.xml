@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+    <!-- Master SVG geometry scaled from 1024 to this 240 viewport. The
+         rails stay open at the top and the three rungs sit below their caps. -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E3A72F"
+        android:strokeWidth="16.875"
+        android:strokeLineCap="round"
+        android:pathData="M82.969,164.063 L106.406,82.031" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E3A72F"
+        android:strokeWidth="16.875"
+        android:strokeLineCap="round"
+        android:pathData="M133.594,82.031 L157.031,164.063" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E3A72F"
+        android:strokeWidth="12.656"
+        android:strokeLineCap="round"
+        android:pathData="M95.391,137.344 L144.609,137.344" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E3A72F"
+        android:strokeWidth="12.656"
+        android:strokeLineCap="round"
+        android:pathData="M99.844,120.938 L140.156,120.938" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E3A72F"
+        android:strokeWidth="12.656"
+        android:strokeLineCap="round"
+        android:pathData="M104.531,104.531 L135.469,104.531" />
+    <path android:fillColor="#F3D58A" android:pathData="M82.969,158.672 C85.946,158.672 88.36,161.087 88.36,164.063 C88.36,167.039 85.946,169.453 82.969,169.453 C79.993,169.453 77.578,167.039 77.578,164.063 C77.578,161.087 79.993,158.672 82.969,158.672 Z" />
+    <path android:fillColor="#F3D58A" android:pathData="M157.031,158.672 C160.007,158.672 162.422,161.087 162.422,164.063 C162.422,167.039 160.007,169.453 157.031,169.453 C154.054,169.453 151.64,167.039 151.64,164.063 C151.64,161.087 154.054,158.672 157.031,158.672 Z" />
+</vector>

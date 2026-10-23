@@ -1,0 +1,2820 @@
+openapi: 3.0.3
+info:
+  title: Avalon Cloud 客户端公开接口
+  version: 0.2.0
+  x-contract-status: design-frozen-sync-not-implemented
+  description: 保留 0.1.1 七个账号操作的 wire 定义，新增激活、上传、下载的完整 schema 1 设计。同步三个操作尚未实现或验收；固定语义与安全约束见同目录 SYNC_PROTOCOL.md。任何接口变更必须发布新归档版本，不能修改已冻结版本。正文、令牌、验证码、邮箱、秘密不得进入日志。
+x-contract-status: design-frozen-sync-not-implemented
+x-canonical-path: docs/api/cloud.openapi.yaml
+x-contract-scope: account-first-batch-and-sync-schema-1-design
+x-sources:
+- docs/CLOUD_SYNC.md §3、§4、§8、§9、§11
+- docs/PRODUCT_SPEC.md §3.14
+- docs/DECISIONS.md D96; docs/api/SYNC_PROTOCOL.md
+x-open-questions:
+- id: delete-idempotency
+  question: 删除账号成功响应丢失后的恢复证明尚待双方确认；设备重复移除已确定为 404，该响应不能证明首次删除成功。
+  currentRule: 删除账号撤销全部会话，401 不作为删除成功证明；移除设备撤销该设备全部会话，已移除、未知及跨账号目标统一 404 NOT_FOUND。
+- id: production-key-destruction
+  question: 生产 KMS 提供方、不可逆销毁时限和删除完成回执仍待确定。不得将当前在线删除成功视作旧备份已经不可恢复。
+  currentRule: 未通过真实 KMS 与旧备份销毁验收之前，同步不能开放生产。
+x-deferred-operations:
+- operations:
+  - POST /v1/auth/apple
+  - POST /v1/auth/google
+  reason: 后续必须补齐原生 identity token、issuer、audience、nonce 校验契约；不属于本批。
+- operations:
+  - POST /v1/auth/web/start
+  - GET /v1/auth/web/{id}
+  reason: 后续必须补齐 OAuth PKCE/state/nonce、10 分钟会话、轮询秘密与结果丢包恢复契约；不属于本批。
+- operations:
+  - GET /v1/plans
+  - POST /v1/billing/apple
+  - POST /v1/billing/google
+  - POST /v1/billing/web/checkout
+  - POST /v1/billing/restore
+  - POST /v1/billing/webhooks/{provider}
+  reason: 后续必须补齐价格、购买与恢复及渠道通知契约；不属于本批。
+tags:
+- name: auth
+  description: 邮箱登录与当前会话管理
+- name: account
+  description: 当前账号、权益与设备快照
+- name: devices
+  description: 当前账号下的设备管理
+- name: sync
+  description: 已设计、尚未实现的付费账号内容同步
+security:
+- BearerAuth: []
+paths:
+  /v1/auth/email/start:
+    post:
+      operationId: startEmailChallenge
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 发送邮箱验证码
+      description: '不以响应透露账号是否存在；成功时返回 challengeId 与 expiresAt。
+
+        expiresAt 为服务端当前时间加 10 分钟的 UTC RFC3339 时间。
+
+        验证码为 6 位，10 分钟有效；每个 challenge 最多验证 5 次。
+
+        同一邮箱每小时最多发送 5 次，同一 IP 每小时最多发送 100 次。
+
+        限流应与账号存在性无关；限流错误使用 429 RATE_LIMITED。小时配额 Retry-After 为 3600 秒，通用 HTTP 限流为 60 秒。
+
+        成功发送不增加 60 秒冷却或 resendAfter。expiresAt 不是重发限制；重发仅依据 429 的 Retry-After 等待。
+
+        '
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailStartRequest'
+      responses:
+        '200':
+          description: 已受理验证码请求；响应形状不反映账号存在性。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailStartResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/auth/email/verify:
+    post:
+      operationId: verifyEmailChallenge
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 验证邮箱验证码并登录
+      description: 'code 必须作为字符串传输，以保留前导零。服务端消费有效 challenge 并绑定安装设备。
+
+        设备按 accountId 与 installationId 查找或创建；会话绑定该设备。
+
+        登录本身不要求付费，也不占用同步设备名额；付费同步另由 sync/activate 激活。
+
+        登录响应以及所有令牌写入客户端加密秘密表。
+
+        challenge 校验失败返回 400 VALIDATION，error.reason 为 wrongCode、expired、attemptsExceeded、consumed 或 missing；普通参数校验不附
+        reason。
+
+        前四次错码为 wrongCode，第五次错码为 attemptsExceeded，第五次正确仍可成功。已消费、过期或耗尽的 challenge 不再计尝试，未知 challenge 为 missing。
+
+        expired 表示服务端当前时间达到 expiresAt；客户端显示服务器状态，不以本机时钟代替服务器校验。多个终止条件同时成立的裁决顺序不在本增量中另作规定。
+
+        '
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerifyRequest'
+      responses:
+        '200':
+          description: 登录成功；返回当前会话的令牌与身份绑定。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/auth/refresh:
+    post:
+      operationId: refreshSession
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 轮换当前会话的令牌
+      description: '通过请求体中的 refresh token 认证，不依赖尚有效的 access token。
+
+        access token 为 JWT，有效期 15 分钟，携带 accountId、deviceId、sessionId。
+
+        refresh token 为不透明随机串，有效期 90 天；每次刷新轮换并顺延期限。
+
+        无法识别的 refresh token 返回 401 AUTH_REQUIRED；可识别会话已撤销时优先返回 401 SESSION_REVOKED。
+
+        非撤销会话自然到期返回 401 AUTH_REQUIRED。会话仍有效时，已消费的旧 refresh 被重放返回 401 SESSION_REVOKED 并撤销整个会话；此检查优先于该旧
+        token 自身到期检查。
+
+        非撤销、未消费的 token 自然到期返回 401 AUTH_REQUIRED。自然到期判断包含到期时刻本身；客户端禁止自动重试旧 token。
+
+        客户端将同一会话的并发刷新合并为一次，并将新令牌对原子写入加密秘密表。
+
+        刷新已成功但响应丢失时的恢复方案为待协商事项；本稿不提供宽限期或幂等例外。
+
+        '
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: 同一会话的令牌已轮换，返回新令牌对。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/auth/logout:
+    post:
+      operationId: logoutSession
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 撤销目标会话或提交待撤销证明
+      description: '可使用 Bearer 或 JSON refreshToken proof。只要提供 Bearer，就先校验 JWT；无效或已到期的 Bearer 优先返回 401
+        AUTH_REQUIRED，即使 body proof 有效也不能忽略该错误。
+
+        body proof 可以是当前或已轮换的旧 refresh，仅证明撤销其原会话，不能登录、刷新或用于其他受保护接口。proof 有效期以该 token 发放时的原 refreshExpiresAt
+        为准；会话后续刷新不会延长旧 proof。now >= 原 refreshExpiresAt 时返回 401 AUTH_REQUIRED。
+
+        Bearer 与 proof 同时提供且均有效时，必须属于同一会话；不同会话返回 400 VALIDATION，不撤销任何一方。proof-only 不得附加新会话 Bearer。
+
+        通过本操作凭据校验后，已撤销目标重复调用返回 204；未过期 proof 的重复撤销可幂等成功，已到期 proof 不因目标已撤销而返回 204。
+
+        客户端先原子加密保存待撤销 proof 及其原 refreshExpiresAt，再清除活动令牌。旧队列缺少到期字段时兼容为 null，不把缺字段当作已过期。服务器明确返回 proof-only
+        的 401 AUTH_REQUIRED 时清除该项并抛 CloudRevocationUnavailableException，表示远端撤销未获确认；不能作为远端撤销成功，也不能只凭本机时钟提前丢弃
+        proof。未知或畸形 401、网络错误保留待撤销项。
+
+        补撤销使用 proof-only；应用启动、回前台与网络恢复的自动重试接线仍待完整 Cloud UI 实现，不由首批接口基础层承诺已自动补发。退出保留本机内容与代理凭据。'
+      responses:
+        '204':
+          description: 当前会话已撤销，无响应正文。
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+      - BearerAuth: []
+      - {}
+      x-authentication-rule: 校验已提供的 Bearer 优先；proof 须未到其原 refreshExpiresAt；同时提供的有效凭据须指向同一会话
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutProofRequest'
+  /v1/account:
+    get:
+      operationId: getAccount
+      x-contract-status: accepted-first-batch
+      tags:
+      - account
+      summary: 获取当前账号、权益与设备快照
+      description: 从有效 Bearer 会话获取当前账号快照，包括全部持有有效会话的设备和本机 deviceId。deviceLimit=10，只有 syncActive=true 占名额。免费账号返回
+        entitlement=null、syncActiveDeviceCount=0。entitlement.status 为 active/expired/revoked，取消续费但未到期仍
+        active。所有字段来自一致快照。
+      responses:
+        '200':
+          description: 当前账号快照。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteAccount
+      x-contract-status: accepted-first-batch
+      tags:
+      - account
+      summary: 删除当前账号与云端数据
+      description: '要求当前会话有效，客户端已完成两次确认。只从 Bearer 会话确定要删除的账号。
+
+        服务端撤销全部会话，删除同步记录、设备、身份和邮箱，销毁账号数据密钥。
+
+        购买记录按财税要求匿名保留。客户端保留本机内容与代理凭据。
+
+        删除账号不会代替用户到购买渠道取消订阅；响应提供结构化取消提醒信息。
+
+        本稿未定义删除成功后响应丢失的重试鉴权结果。
+
+        '
+      responses:
+        '200':
+          description: 账号已删除；客户端依据结构化字段显示渠道取消订阅提醒。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteAccountResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/devices/{id}:
+    delete:
+      operationId: removeDevice
+      x-contract-status: accepted-first-batch
+      tags:
+      - devices
+      summary: 移除当前账号下的设备
+      description: 移除当前账号的非本机设备，撤销它的全部会话并释放同步名额。未知、跨账号或已移除的 deviceId 一律 404 NOT_FOUND，重复移除不返回 204；404
+        不能证明首次删除成功。本机设备 400 VALIDATION，退出本机应使用 logout。目标设备下一请求 401，保留本机数据。授权与写入同事务，所有受保护请求检查会话撤销状态。
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 待移除设备的不透明标识。
+        schema:
+          $ref: '#/components/schemas/OpaqueId'
+      responses:
+        '204':
+          description: 目标设备全部会话已撤销且同步名额已释放，无响应正文。
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /v1/sync/activate:
+    post:
+      operationId: activateSync
+      x-contract-status: design-frozen-not-implemented
+      tags:
+      - sync
+      summary: 激活当前登录设备的同步
+      description: 必须遵循 SYNC_PROTOCOL.md 的全部规范性约束。账号/设备/会话取自已验证JWT，绝不接受客户端授权声明。生产尚未开放。 请求不得携带正文或query；对当前已激活设备幂等成功。权益到期保留标记但禁止同步，续期后可恢复。
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: Avalon-Sync-Version
+        in: header
+        required: true
+        schema:
+          type: string
+          enum:
+          - '1'
+        description: 同步语义版本，固定为1；缺失或不支持返回426 SCHEMA_UNSUPPORTED。与OpenAPI文档版本、数据库版本无关。
+      responses:
+        '200':
+          description: 成功；直接业务JSON。
+          headers:
+            Avalon-Sync-Version:
+              description: 同步成功响应必须为1；客户端不支持则拒绝应用。
+              required: true
+              schema:
+                type: string
+                enum:
+                - '1'
+            Cache-Control:
+              description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncActivateResponse'
+        '400':
+          $ref: '#/components/responses/SyncError400'
+        '401':
+          $ref: '#/components/responses/SyncError401'
+        '402':
+          $ref: '#/components/responses/SyncError402'
+        '409':
+          $ref: '#/components/responses/SyncError409'
+        '413':
+          $ref: '#/components/responses/SyncError413'
+        '415':
+          $ref: '#/components/responses/SyncError415'
+        '426':
+          $ref: '#/components/responses/SyncError426'
+        '429':
+          $ref: '#/components/responses/SyncError429'
+        '500':
+          $ref: '#/components/responses/SyncError500'
+        '503':
+          $ref: '#/components/responses/SyncError503'
+  /v1/sync/push:
+    post:
+      operationId: pushSync
+      x-contract-status: design-frozen-not-implemented
+      tags:
+      - sync
+      summary: 上传用户内容mutation的连续前缀
+      description: 必须遵循 SYNC_PROTOCOL.md 的全部规范性约束。账号/设备/会话取自已验证JWT，绝不接受客户端授权声明。生产尚未开放。
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: Avalon-Sync-Version
+        in: header
+        required: true
+        schema:
+          type: string
+          enum:
+          - '1'
+        description: 同步语义版本，固定为1；缺失或不支持返回426 SCHEMA_UNSUPPORTED。与OpenAPI文档版本、数据库版本无关。
+      responses:
+        '200':
+          description: 成功；直接业务JSON。
+          headers:
+            Avalon-Sync-Version:
+              description: 同步成功响应必须为1；客户端不支持则拒绝应用。
+              required: true
+              schema:
+                type: string
+                enum:
+                - '1'
+            Cache-Control:
+              description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPushResponse'
+        '400':
+          $ref: '#/components/responses/SyncError400'
+        '401':
+          $ref: '#/components/responses/SyncError401'
+        '402':
+          $ref: '#/components/responses/SyncError402'
+        '409':
+          $ref: '#/components/responses/SyncError409'
+        '413':
+          $ref: '#/components/responses/SyncError413'
+        '415':
+          $ref: '#/components/responses/SyncError415'
+        '426':
+          $ref: '#/components/responses/SyncError426'
+        '429':
+          $ref: '#/components/responses/SyncError429'
+        '500':
+          $ref: '#/components/responses/SyncError500'
+        '503':
+          $ref: '#/components/responses/SyncError503'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPushRequest'
+  /v1/sync/pull:
+    get:
+      operationId: pullSync
+      x-contract-status: design-frozen-not-implemented
+      tags:
+      - sync
+      summary: 按账号revision下载增量含永久墓碑
+      description: 必须遵循 SYNC_PROTOCOL.md 的全部规范性约束。账号/设备/会话取自已验证JWT，绝不接受客户端授权声明。生产尚未开放。
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: Avalon-Sync-Version
+        in: header
+        required: true
+        schema:
+          type: string
+          enum:
+          - '1'
+        description: 同步语义版本，固定为1；缺失或不支持返回426 SCHEMA_UNSUPPORTED。与OpenAPI文档版本、数据库版本无关。
+      - name: cursor
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/SyncRevision'
+        description: 从0开始，不得超过该账号已提交最大revision。重复query键、未知query拒绝。
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 500
+      responses:
+        '200':
+          description: 成功；直接业务JSON。
+          headers:
+            Avalon-Sync-Version:
+              description: 同步成功响应必须为1；客户端不支持则拒绝应用。
+              required: true
+              schema:
+                type: string
+                enum:
+                - '1'
+            Cache-Control:
+              description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncPullResponse'
+        '400':
+          $ref: '#/components/responses/SyncError400'
+        '401':
+          $ref: '#/components/responses/SyncError401'
+        '402':
+          $ref: '#/components/responses/SyncError402'
+        '409':
+          $ref: '#/components/responses/SyncError409'
+        '413':
+          $ref: '#/components/responses/SyncError413'
+        '415':
+          $ref: '#/components/responses/SyncError415'
+        '426':
+          $ref: '#/components/responses/SyncError426'
+        '429':
+          $ref: '#/components/responses/SyncError429'
+        '500':
+          $ref: '#/components/responses/SyncError500'
+        '503':
+          $ref: '#/components/responses/SyncError503'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'access JWT 有效期 15 分钟，携带 accountId、deviceId、sessionId。
+
+        服务端还需核验会话有效性及撤销状态，所有账号隔离由服务端执行。
+
+        '
+  schemas:
+    OpaqueId:
+      type: string
+      minLength: 1
+      x-contract-status: accepted-first-batch
+      description: 不透明标识；客户端不得解析其结构或假设它是 UUID。
+    UtcTimestamp:
+      type: string
+      format: date-time
+      pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$
+      x-contract-status: accepted-first-batch
+      description: RFC3339 UTC 时间，必须使用 Z 结尾，可含小数秒。
+    DeviceOs:
+      type: string
+      enum:
+      - ios
+      - android
+      - macos
+      - windows
+      - linux
+      x-contract-status: accepted-first-batch
+      description: 操作系统编码草案，支持产品既定五个平台。
+    PurchaseSource:
+      type: string
+      enum:
+      - apple
+      - google
+      - web
+      x-contract-status: accepted-first-batch
+    DeviceInput:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - installationId
+      - name
+      - os
+      properties:
+        installationId:
+          type: string
+          format: uuid
+          description: 首次启动生成的稳定安装标识；UUID 格式为提案。文件备份不包含此设备身份。
+          x-contract-status: accepted-first-batch
+        name:
+          type: string
+          minLength: 1
+          description: 设备显示名，不得使用 V3 演示数据代替真实设备信息。
+        os:
+          $ref: '#/components/schemas/DeviceOs'
+    EmailStartRequest:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: 用户输入的邮箱；不得记录明文邮箱。
+    EmailStartResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      description: 严格仅包含 challengeId 与 expiresAt；不返回账号存在性或用户资料。旧客户端可忽略新字段，新客户端与服务端按 0.1.1 一起适配。
+      required:
+      - challengeId
+      - expiresAt
+      properties:
+        challengeId:
+          $ref: '#/components/schemas/OpaqueId'
+        expiresAt:
+          allOf:
+          - $ref: '#/components/schemas/UtcTimestamp'
+          description: 服务端当前时间加 10 分钟的 UTC RFC3339 时间，使用 Z 后缀；不是重发冷却。
+    EmailVerifyRequest:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - challengeId
+      - code
+      - device
+      properties:
+        challengeId:
+          $ref: '#/components/schemas/OpaqueId'
+        code:
+          type: string
+          pattern: ^[0-9]{6}$
+          minLength: 6
+          maxLength: 6
+          description: 保留前导零的 6 位验证码字符串，禁止写入日志。
+        device:
+          $ref: '#/components/schemas/DeviceInput'
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          description: 当前尚未使用的不透明 refresh token。禁止自动重试旧 token。
+    TokenResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - accessToken
+      - accessExpiresAt
+      - refreshToken
+      - refreshExpiresAt
+      - accountId
+      - deviceId
+      - sessionId
+      properties:
+        accessToken:
+          type: string
+          minLength: 1
+          description: JWT，15 分钟有效。只存于加密秘密表；禁止日志和未加密缓存。
+        accessExpiresAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+        refreshToken:
+          type: string
+          minLength: 1
+          description: 不透明随机串，90 天有效；每次刷新轮换并顺延期限。
+        refreshExpiresAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+        accountId:
+          $ref: '#/components/schemas/OpaqueId'
+        deviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        sessionId:
+          $ref: '#/components/schemas/OpaqueId'
+    Account:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - id
+      - email
+      - displayName
+      properties:
+        id:
+          $ref: '#/components/schemas/OpaqueId'
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: 邮箱可能为空，例如 provider 未提供邮箱；不同 provider 相同邮箱不自动合并账号。
+        displayName:
+          type: string
+          nullable: true
+          description: 账号显示名可为空；展示回退规则不由本草案新增。
+    Entitlement:
+      type: object
+      nullable: true
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      description: null 表示无权益记录；非 null 按 status 与 expiresAt 判断。取消续费但未到期仍 active；禁止简化为非 null 即 isPro。
+      required:
+      - plan
+      - source
+      - status
+      - expiresAt
+      properties:
+        plan:
+          type: string
+          enum:
+          - monthly
+          - yearly
+        source:
+          $ref: '#/components/schemas/PurchaseSource'
+        status:
+          type: string
+          enum:
+          - active
+          - expired
+          - revoked
+          description: 已确认权益状态；未知未来状态客户端保留但不能据此启用同步。
+        expiresAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+    Device:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - id
+      - name
+      - os
+      - syncActive
+      - lastSeenAt
+      properties:
+        id:
+          $ref: '#/components/schemas/OpaqueId'
+        name:
+          type: string
+          minLength: 1
+        os:
+          $ref: '#/components/schemas/DeviceOs'
+        syncActive:
+          type: boolean
+          description: 为 true 时该设备占用一个同步名额；登录成功不自动使此值变为 true。
+        lastSeenAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+    AccountResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - account
+      - entitlement
+      - devices
+      - currentDeviceId
+      - deviceLimit
+      - syncActiveDeviceCount
+      x-invariants:
+      - devices 仅包含当前账号下持有有效会话的设备。
+      - device.id 唯一；同一 installation 的多个会话不重复列出设备。
+      - currentDeviceId 与请求 Bearer 会话绑定的 deviceId 一致。
+      - syncActiveDeviceCount 等于同一快照中 syncActive 为 true 的设备数。
+      properties:
+        account:
+          $ref: '#/components/schemas/Account'
+        entitlement:
+          $ref: '#/components/schemas/Entitlement'
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+          description: 全部已登录设备，含未激活同步的设备；不是只返回最多 10 台已激活设备。
+        currentDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deviceLimit:
+          type: integer
+          enum:
+          - 10
+          description: 现行同步设备名额上限。
+        syncActiveDeviceCount:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: 占用同步名额的设备数，用于 N / 10 展示。
+    CancelSubscriptionNotice:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - required
+      - sources
+      description: '提醒用户到购买渠道取消订阅，不表示服务端已取消商店或网页订阅。
+
+        required=false 时 sources 为空数组；required=true 时 sources 包含需要提醒的渠道。
+
+        required 判定及 sources 选取的详细来源尚待服务端确认。
+
+        '
+      properties:
+        required:
+          type: boolean
+        sources:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/PurchaseSource'
+    DeleteAccountResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - cancelSubscription
+      properties:
+        cancelSubscription:
+          $ref: '#/components/schemas/CancelSubscriptionNotice'
+    ErrorCode:
+      type: string
+      enum:
+      - AUTH_REQUIRED
+      - SESSION_REVOKED
+      - NO_ENTITLEMENT
+      - DEVICE_LIMIT
+      - SCHEMA_UNSUPPORTED
+      - RATE_LIMITED
+      - PURCHASE_OWNED_BY_OTHER
+      - VALIDATION
+      - INTERNAL_ERROR
+      - NOT_FOUND
+      x-contract-status: accepted-first-batch
+      description: 10 个已确认错误码；客户端按 code 分支，不解析 message。INTERNAL_ERROR 为脱敏内部失败，NOT_FOUND 为资源/路由不存在。同步/购买沿用后续接口既定
+        code。
+    CloudError:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              $ref: '#/components/schemas/ErrorCode'
+            message:
+              type: string
+              description: 诊断说明；客户端不得依靠内容或语言解析业务状态。
+            reason:
+              $ref: '#/components/schemas/EmailChallengeReason'
+    EmailChallengeReason:
+      type: string
+      description: 可选 error.reason，仅邮箱 challenge 校验的 400 VALIDATION 返回；普通参数校验和其他状态／code 不附此字段。未知值客户端按通用校验失败处理，不解析
+        message。
+      enum:
+      - wrongCode
+      - expired
+      - attemptsExceeded
+      - consumed
+      - missing
+    LogoutProofRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          description: 仅供撤销目标会话的 refresh proof，允许已轮换旧值；仅在该 token 的原 refreshExpiresAt 前有效，后续轮换不延长其期限。客户端加密保存其值与原到期时间，禁止日志；到期或未确认错误不作为远端撤销成功。
+    SyncUuid:
+      type: string
+      maxLength: 36
+      pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+      minLength: 36
+    SyncEpochMillis:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 253402300799999
+    SyncRevision:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+    SyncRecordType:
+      type: string
+      enum:
+      - configuration
+      - node
+      - chain
+      - policy
+      - selection
+    SyncRecordId:
+      type: string
+      maxLength: 100
+      description: configuration/node/chain 为小写 UUID；policy 为 policy；selection 为 sel:<configurationId>:<groupKeyHash>。类型绑定及
+        hash 规则见 SYNC_PROTOCOL §4。
+      minLength: 1
+    SyncConfigurationId:
+      oneOf:
+      - $ref: '#/components/schemas/SyncUuid'
+      - type: string
+        enum:
+        - self
+    SyncSecretRef:
+      type: object
+      additionalProperties: false
+      required:
+      - $secretRef
+      properties:
+        $secretRef:
+          type: string
+          maxLength: 16
+          pattern: ^s(?:0|[1-9][0-9]{0,6})$
+          minLength: 2
+      description: 只在协议定义的秘密字段中使用；引用同一 payload.secrets，不是本机 secretId。
+    SyncSecrets:
+      type: object
+      maxProperties: 50000
+      additionalProperties:
+        type: string
+        maxLength: 1048576
+      description: s0/s1/... 到明文值的映射，仅存在于 HTTPS 正文和授权内存，落盘必须加密。键集必须恰好等于模型的 $secretRef 引用集合。
+    SyncHeaders:
+      type: object
+      maxProperties: 32
+      additionalProperties:
+        type: string
+        maxLength: 16384
+      description: 名称采用 HTTP token，最长256；值不含 CR/LF/NUL。允许及禁止的名称见 SYNC_PROTOCOL §10；跨 origin 不转发任何来源自带头。
+    SyncSource:
+      type: object
+      additionalProperties: false
+      required:
+      - url
+      - headers
+      properties:
+        url:
+          type: string
+          maxLength: 16384
+          format: uri
+          minLength: 1
+        headers:
+          $ref: '#/components/schemas/SyncHeaders'
+    SyncMembership:
+      type: object
+      additionalProperties: false
+      required:
+      - configurationId
+      - groupKey
+      properties:
+        configurationId:
+          $ref: '#/components/schemas/SyncConfigurationId'
+        groupKey:
+          type: string
+          maxLength: 1024
+          minLength: 1
+    SyncMemberships:
+      type: array
+      items:
+        $ref: '#/components/schemas/SyncMembership'
+      maxItems: 5000
+      uniqueItems: true
+    SyncReality:
+      type: object
+      additionalProperties: false
+      required:
+      - publicKey
+      - shortId
+      properties:
+        publicKey:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        shortId:
+          type: string
+          maxLength: 1024
+          nullable: true
+    SyncTls:
+      type: object
+      additionalProperties: false
+      required:
+      - serverName
+      - insecure
+      - alpn
+      - fingerprint
+      - reality
+      properties:
+        serverName:
+          type: string
+          maxLength: 1024
+          nullable: true
+        insecure:
+          type: boolean
+        alpn:
+          type: array
+          items:
+            type: string
+            maxLength: 255
+            minLength: 1
+          maxItems: 32
+        fingerprint:
+          type: string
+          maxLength: 128
+          nullable: true
+        reality:
+          oneOf:
+          - $ref: '#/components/schemas/SyncReality'
+          - type: object
+            nullable: true
+            enum:
+            - null
+    SyncTcpTransport:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          enum:
+          - tcp
+    SyncWsTransport:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - path
+      - host
+      - maxEarlyData
+      - earlyDataHeader
+      properties:
+        type:
+          type: string
+          enum:
+          - ws
+        path:
+          type: string
+          maxLength: 16384
+        host:
+          type: string
+          maxLength: 1024
+          nullable: true
+        maxEarlyData:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 1048576
+        earlyDataHeader:
+          type: string
+          maxLength: 256
+          nullable: true
+    SyncGrpcTransport:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - serviceName
+      properties:
+        type:
+          type: string
+          enum:
+          - grpc
+        serviceName:
+          type: string
+          maxLength: 1024
+    SyncHttp2Transport:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - path
+      - host
+      properties:
+        type:
+          type: string
+          enum:
+          - http2
+        path:
+          type: string
+          maxLength: 16384
+        host:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 32
+    SyncTransport:
+      oneOf:
+      - $ref: '#/components/schemas/SyncTcpTransport'
+      - $ref: '#/components/schemas/SyncWsTransport'
+      - $ref: '#/components/schemas/SyncGrpcTransport'
+      - $ref: '#/components/schemas/SyncHttp2Transport'
+      discriminator:
+        propertyName: type
+        mapping:
+          tcp: '#/components/schemas/SyncTcpTransport'
+          ws: '#/components/schemas/SyncWsTransport'
+          grpc: '#/components/schemas/SyncGrpcTransport'
+          http2: '#/components/schemas/SyncHttp2Transport'
+    SyncHysteria2Params:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - password
+      - obfsPassword
+      - upMbps
+      - downMbps
+      - serverPorts
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - hysteria2
+        password:
+          $ref: '#/components/schemas/SyncSecretRef'
+        obfsPassword:
+          oneOf:
+          - $ref: '#/components/schemas/SyncSecretRef'
+          - type: object
+            nullable: true
+            enum:
+            - null
+        upMbps:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 2147483647
+        downMbps:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 2147483647
+        serverPorts:
+          type: array
+          items:
+            type: string
+            maxLength: 32
+            minLength: 1
+          maxItems: 256
+        tls:
+          $ref: '#/components/schemas/SyncTls'
+    SyncTuicParams:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - uuid
+      - password
+      - congestionControl
+      - udpRelayMode
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - tuic
+        uuid:
+          $ref: '#/components/schemas/SyncSecretRef'
+        password:
+          $ref: '#/components/schemas/SyncSecretRef'
+        congestionControl:
+          type: string
+          enum:
+          - bbr
+          - cubic
+          - new_reno
+        udpRelayMode:
+          type: string
+          nullable: true
+          enum:
+          - native
+          - quic
+          - null
+        tls:
+          $ref: '#/components/schemas/SyncTls'
+    SyncVlessParams:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - uuid
+      - flow
+      - transport
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - vless
+        uuid:
+          $ref: '#/components/schemas/SyncSecretRef'
+        flow:
+          type: string
+          maxLength: 128
+          nullable: true
+        transport:
+          $ref: '#/components/schemas/SyncTransport'
+        tls:
+          oneOf:
+          - $ref: '#/components/schemas/SyncTls'
+          - type: object
+            nullable: true
+            enum:
+            - null
+    SyncVmessParams:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - uuid
+      - alterId
+      - cipher
+      - transport
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - vmess
+        uuid:
+          $ref: '#/components/schemas/SyncSecretRef'
+        alterId:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 65535
+        cipher:
+          type: string
+          maxLength: 128
+          minLength: 1
+        transport:
+          $ref: '#/components/schemas/SyncTransport'
+        tls:
+          oneOf:
+          - $ref: '#/components/schemas/SyncTls'
+          - type: object
+            nullable: true
+            enum:
+            - null
+    SyncTrojanParams:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - password
+      - transport
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - trojan
+        password:
+          $ref: '#/components/schemas/SyncSecretRef'
+        transport:
+          $ref: '#/components/schemas/SyncTransport'
+        tls:
+          $ref: '#/components/schemas/SyncTls'
+    SyncShadowsocksParams:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - method
+      - password
+      - plugin
+      - pluginOpts
+      properties:
+        protocol:
+          type: string
+          enum:
+          - shadowsocks
+        method:
+          type: string
+          maxLength: 128
+          minLength: 1
+        password:
+          $ref: '#/components/schemas/SyncSecretRef'
+        plugin:
+          type: string
+          maxLength: 128
+          nullable: true
+        pluginOpts:
+          type: string
+          maxLength: 16384
+          nullable: true
+    SyncSocks5Params:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - username
+      - password
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - socks5
+        username:
+          type: string
+          maxLength: 1024
+          nullable: true
+        password:
+          oneOf:
+          - $ref: '#/components/schemas/SyncSecretRef'
+          - type: object
+            nullable: true
+            enum:
+            - null
+        tls:
+          oneOf:
+          - $ref: '#/components/schemas/SyncTls'
+          - type: object
+            nullable: true
+            enum:
+            - null
+    SyncAnytlsParams:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - password
+      - idleSessionCheckInterval
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - anytls
+        password:
+          $ref: '#/components/schemas/SyncSecretRef'
+        idleSessionCheckInterval:
+          type: string
+          maxLength: 128
+          nullable: true
+        tls:
+          $ref: '#/components/schemas/SyncTls'
+    SyncHttpParams:
+      type: object
+      additionalProperties: false
+      required:
+      - protocol
+      - username
+      - password
+      - tls
+      properties:
+        protocol:
+          type: string
+          enum:
+          - http
+        username:
+          type: string
+          maxLength: 1024
+          nullable: true
+        password:
+          oneOf:
+          - $ref: '#/components/schemas/SyncSecretRef'
+          - type: object
+            nullable: true
+            enum:
+            - null
+        tls:
+          oneOf:
+          - $ref: '#/components/schemas/SyncTls'
+          - type: object
+            nullable: true
+            enum:
+            - null
+    SyncNodeParams:
+      oneOf:
+      - $ref: '#/components/schemas/SyncHysteria2Params'
+      - $ref: '#/components/schemas/SyncTuicParams'
+      - $ref: '#/components/schemas/SyncVlessParams'
+      - $ref: '#/components/schemas/SyncVmessParams'
+      - $ref: '#/components/schemas/SyncTrojanParams'
+      - $ref: '#/components/schemas/SyncShadowsocksParams'
+      - $ref: '#/components/schemas/SyncSocks5Params'
+      - $ref: '#/components/schemas/SyncAnytlsParams'
+      - $ref: '#/components/schemas/SyncHttpParams'
+      discriminator:
+        propertyName: protocol
+        mapping:
+          hysteria2: '#/components/schemas/SyncHysteria2Params'
+          tuic: '#/components/schemas/SyncTuicParams'
+          vless: '#/components/schemas/SyncVlessParams'
+          vmess: '#/components/schemas/SyncVmessParams'
+          trojan: '#/components/schemas/SyncTrojanParams'
+          shadowsocks: '#/components/schemas/SyncShadowsocksParams'
+          socks5: '#/components/schemas/SyncSocks5Params'
+          anytls: '#/components/schemas/SyncAnytlsParams'
+          http: '#/components/schemas/SyncHttpParams'
+    SyncSourceMember:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - configurationId
+      - key
+      properties:
+        kind:
+          type: string
+          enum:
+          - source
+        configurationId:
+          $ref: '#/components/schemas/SyncConfigurationId'
+        key:
+          type: string
+          maxLength: 1024
+          minLength: 1
+    SyncSelfNodeMember:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - id
+      properties:
+        kind:
+          type: string
+          enum:
+          - selfNode
+        id:
+          $ref: '#/components/schemas/SyncUuid'
+    SyncChainMember:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - id
+      properties:
+        kind:
+          type: string
+          enum:
+          - chain
+        id:
+          $ref: '#/components/schemas/SyncUuid'
+    SyncTailnetMember:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - tailnet
+      - nodeStableId
+      - name
+      properties:
+        kind:
+          type: string
+          enum:
+          - tailnetExit
+        tailnet:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        nodeStableId:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        name:
+          type: string
+          maxLength: 1024
+          minLength: 1
+    SyncBuiltinMember:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - builtin
+      properties:
+        kind:
+          type: string
+          enum:
+          - builtin
+        builtin:
+          type: string
+          enum:
+          - direct
+          - reject
+    SyncMemberRef:
+      oneOf:
+      - $ref: '#/components/schemas/SyncSourceMember'
+      - $ref: '#/components/schemas/SyncSelfNodeMember'
+      - $ref: '#/components/schemas/SyncChainMember'
+      - $ref: '#/components/schemas/SyncTailnetMember'
+      - $ref: '#/components/schemas/SyncBuiltinMember'
+    SyncHopRef:
+      oneOf:
+      - $ref: '#/components/schemas/SyncSourceMember'
+      - $ref: '#/components/schemas/SyncSelfNodeMember'
+      - $ref: '#/components/schemas/SyncTailnetMember'
+    SyncContentNode:
+      type: object
+      additionalProperties: false
+      required:
+      - key
+      - name
+      - server
+      - port
+      - params
+      - detourKey
+      properties:
+        key:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        name:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        server:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        port:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 65535
+        params:
+          $ref: '#/components/schemas/SyncNodeParams'
+        detourKey:
+          type: string
+          maxLength: 1024
+          nullable: true
+    SyncGroupTest:
+      type: object
+      additionalProperties: false
+      required:
+      - url
+      - intervalSeconds
+      - toleranceMs
+      properties:
+        url:
+          type: string
+          maxLength: 16384
+          format: uri
+          minLength: 1
+        intervalSeconds:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2147483647
+        toleranceMs:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 2147483647
+    SyncGroup:
+      type: object
+      additionalProperties: false
+      required:
+      - key
+      - name
+      - type
+      - displayType
+      - members
+      - test
+      properties:
+        key:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        name:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        type:
+          type: string
+          enum:
+          - selector
+          - urltest
+        displayType:
+          type: string
+          enum:
+          - Selector
+          - URLTest
+          - Fallback
+          - LoadBalance
+        members:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5502
+        test:
+          oneOf:
+          - $ref: '#/components/schemas/SyncGroupTest'
+          - type: object
+            nullable: true
+            enum:
+            - null
+    SyncRule:
+      type: object
+      additionalProperties: false
+      required:
+      - domain
+      - domainSuffix
+      - domainKeyword
+      - domainRegex
+      - ipCidr
+      - sourceIpCidr
+      - ruleSet
+      - processName
+      - processPath
+      - portRange
+      - port
+      - network
+      - invert
+      - target
+      properties:
+        domain:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        domainSuffix:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        domainKeyword:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        domainRegex:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        ipCidr:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        sourceIpCidr:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        ruleSet:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        processName:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        processPath:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        portRange:
+          type: array
+          items:
+            type: string
+            maxLength: 1024
+            minLength: 1
+          maxItems: 5000
+        port:
+          type: array
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 65535
+          maxItems: 5000
+        network:
+          type: array
+          items:
+            type: string
+            enum:
+            - tcp
+            - udp
+          maxItems: 2
+          uniqueItems: true
+        invert:
+          type: boolean
+        target:
+          type: string
+          maxLength: 1024
+          minLength: 1
+    SyncRuleSet:
+      type: object
+      additionalProperties: false
+      required:
+      - tag
+      - url
+      - format
+      properties:
+        tag:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        url:
+          type: string
+          maxLength: 16384
+          format: uri
+          minLength: 1
+        format:
+          type: string
+          enum:
+          - binary
+          - source
+          - clashDomainYaml
+          - clashDomainText
+          - clashIpcidrYaml
+          - clashIpcidrText
+          - clashClassicalYaml
+          - clashClassicalText
+    SyncContentModel:
+      type: object
+      additionalProperties: false
+      required:
+      - nodes
+      - groups
+      - rules
+      - ruleSets
+      - finalTarget
+      - defaultRules
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncContentNode'
+          maxItems: 5000
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncGroup'
+          maxItems: 500
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncRule'
+          maxItems: 50000
+        ruleSets:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncRuleSet'
+          maxItems: 5000
+        finalTarget:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        defaultRules:
+          type: boolean
+      description: 完整语义模型；不包含 warnings、usage、刷新状态、下载缓存或运行计划。引用存在性与环路在客户端检查，跨记录未到达引用按协议保存为不可用。
+    SyncFileContent:
+      type: object
+      additionalProperties: false
+      required:
+      - model
+      - secrets
+      properties:
+        model:
+          $ref: '#/components/schemas/SyncContentModel'
+        secrets:
+          $ref: '#/components/schemas/SyncSecrets'
+    SyncSubscriptionPayload:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - name
+      - autoUpdate
+      - createdAt
+      - source
+      properties:
+        kind:
+          type: string
+          enum:
+          - subscription
+        name:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        autoUpdate:
+          type: boolean
+        createdAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        source:
+          $ref: '#/components/schemas/SyncSource'
+    SyncFilePayload:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - name
+      - autoUpdate
+      - createdAt
+      - format
+      - content
+      properties:
+        kind:
+          type: string
+          enum:
+          - file
+        name:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        autoUpdate:
+          type: boolean
+          enum:
+          - false
+        createdAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        format:
+          type: string
+          enum:
+          - singBox
+          - clash
+          - linkList
+        content:
+          $ref: '#/components/schemas/SyncFileContent'
+    SyncConfigurationPayload:
+      oneOf:
+      - $ref: '#/components/schemas/SyncSubscriptionPayload'
+      - $ref: '#/components/schemas/SyncFilePayload'
+    SyncNodePayload:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - server
+      - port
+      - params
+      - secrets
+      - createdAt
+      - memberships
+      properties:
+        name:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        server:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        port:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 65535
+        params:
+          $ref: '#/components/schemas/SyncNodeParams'
+        secrets:
+          $ref: '#/components/schemas/SyncSecrets'
+        createdAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        memberships:
+          $ref: '#/components/schemas/SyncMemberships'
+    SyncChainPayload:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - hops
+      - createdAt
+      - memberships
+      properties:
+        name:
+          type: string
+          maxLength: 1024
+          nullable: true
+        hops:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncHopRef'
+          maxItems: 64
+          minItems: 2
+          uniqueItems: true
+        createdAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        memberships:
+          $ref: '#/components/schemas/SyncMemberships'
+    SyncGeoPolicy:
+      type: object
+      additionalProperties: false
+      required:
+      - autoUpdate
+      - interval
+      - via
+      properties:
+        autoUpdate:
+          type: boolean
+        interval:
+          type: string
+          enum:
+          - daily
+          - weekly
+        via:
+          type: string
+          enum:
+          - proxy
+          - direct
+    SyncPolicyPayload:
+      type: object
+      additionalProperties: false
+      required:
+      - jsonOverride
+      - geo
+      properties:
+        jsonOverride:
+          type: string
+          maxLength: 16777216
+          nullable: true
+        geo:
+          $ref: '#/components/schemas/SyncGeoPolicy'
+      description: 仅上传用户编辑过的账号规则与GEO设置；JSON覆写仍须按 CONFIG_PIPELINE §5 的白名单和 SYNC_PROTOCOL §10 校验。
+    SyncSelectionPayload:
+      type: object
+      additionalProperties: false
+      required:
+      - configurationId
+      - groupKey
+      - member
+      properties:
+        configurationId:
+          $ref: '#/components/schemas/SyncConfigurationId'
+        groupKey:
+          type: string
+          maxLength: 1024
+          minLength: 1
+        member:
+          $ref: '#/components/schemas/SyncMemberRef'
+      description: 只有用户手动选择制造此记录，自动/URLTest选择不上传。
+    SyncConfigurationMutation:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - recordId
+      - type
+      - baseRevision
+      - editedAt
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - configuration
+        baseRevision:
+          $ref: '#/components/schemas/SyncRevision'
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncConfigurationPayload'
+    SyncNodeMutation:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - recordId
+      - type
+      - baseRevision
+      - editedAt
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - node
+        baseRevision:
+          $ref: '#/components/schemas/SyncRevision'
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncNodePayload'
+    SyncChainMutation:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - recordId
+      - type
+      - baseRevision
+      - editedAt
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - chain
+        baseRevision:
+          $ref: '#/components/schemas/SyncRevision'
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncChainPayload'
+    SyncPolicyMutation:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - recordId
+      - type
+      - baseRevision
+      - editedAt
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - policy
+        baseRevision:
+          $ref: '#/components/schemas/SyncRevision'
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncPolicyPayload'
+    SyncSelectionMutation:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - recordId
+      - type
+      - baseRevision
+      - editedAt
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - selection
+        baseRevision:
+          $ref: '#/components/schemas/SyncRevision'
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncSelectionPayload'
+    SyncDeletedMutation:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - recordId
+      - type
+      - baseRevision
+      - editedAt
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          $ref: '#/components/schemas/SyncRecordType'
+        baseRevision:
+          $ref: '#/components/schemas/SyncRevision'
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        deleted:
+          type: boolean
+          enum:
+          - true
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          type: object
+          nullable: true
+          enum:
+          - null
+      description: 永久墓碑：payload 必须显式 null，类型和 recordId 不可变。
+    SyncMutation:
+      oneOf:
+      - $ref: '#/components/schemas/SyncConfigurationMutation'
+      - $ref: '#/components/schemas/SyncNodeMutation'
+      - $ref: '#/components/schemas/SyncChainMutation'
+      - $ref: '#/components/schemas/SyncPolicyMutation'
+      - $ref: '#/components/schemas/SyncSelectionMutation'
+      - $ref: '#/components/schemas/SyncDeletedMutation'
+      description: 类型必须与 ID 命名空间和 payload 分支匹配。整条紧凑 UTF-8 JSON 最大 32 MiB。未知 type/schema 必须拒绝，不得删除字段或跳过记录。
+    SyncConfigurationRecord:
+      type: object
+      additionalProperties: false
+      required:
+      - recordId
+      - type
+      - revision
+      - editedAt
+      - editedByDeviceId
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - configuration
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        editedByDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncConfigurationPayload'
+    SyncNodeRecord:
+      type: object
+      additionalProperties: false
+      required:
+      - recordId
+      - type
+      - revision
+      - editedAt
+      - editedByDeviceId
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - node
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        editedByDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncNodePayload'
+    SyncChainRecord:
+      type: object
+      additionalProperties: false
+      required:
+      - recordId
+      - type
+      - revision
+      - editedAt
+      - editedByDeviceId
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - chain
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        editedByDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncChainPayload'
+    SyncPolicyRecord:
+      type: object
+      additionalProperties: false
+      required:
+      - recordId
+      - type
+      - revision
+      - editedAt
+      - editedByDeviceId
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - policy
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        editedByDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncPolicyPayload'
+    SyncSelectionRecord:
+      type: object
+      additionalProperties: false
+      required:
+      - recordId
+      - type
+      - revision
+      - editedAt
+      - editedByDeviceId
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          type: string
+          enum:
+          - selection
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        editedByDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deleted:
+          type: boolean
+          enum:
+          - false
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          $ref: '#/components/schemas/SyncSelectionPayload'
+    SyncDeletedRecord:
+      type: object
+      additionalProperties: false
+      required:
+      - recordId
+      - type
+      - revision
+      - editedAt
+      - editedByDeviceId
+      - deleted
+      - schemaVersion
+      - payload
+      properties:
+        recordId:
+          $ref: '#/components/schemas/SyncRecordId'
+        type:
+          $ref: '#/components/schemas/SyncRecordType'
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+        editedByDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deleted:
+          type: boolean
+          enum:
+          - true
+        schemaVersion:
+          type: integer
+          enum:
+          - 1
+        payload:
+          type: object
+          nullable: true
+          enum:
+          - null
+      description: 永久墓碑：payload 必须显式 null，类型和 recordId 不可变。
+    SyncRecord:
+      oneOf:
+      - $ref: '#/components/schemas/SyncConfigurationRecord'
+      - $ref: '#/components/schemas/SyncNodeRecord'
+      - $ref: '#/components/schemas/SyncChainRecord'
+      - $ref: '#/components/schemas/SyncPolicyRecord'
+      - $ref: '#/components/schemas/SyncSelectionRecord'
+      - $ref: '#/components/schemas/SyncDeletedRecord'
+      description: 类型必须与 ID 命名空间和 payload 分支匹配。整条紧凑 UTF-8 JSON 最大 32 MiB。未知 type/schema 必须拒绝，不得删除字段或跳过记录。
+    SyncActivateResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - deviceId
+      - syncActive
+      - deviceLimit
+      - syncActiveDeviceCount
+      - serverTime
+      properties:
+        deviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        syncActive:
+          type: boolean
+          enum:
+          - true
+        deviceLimit:
+          type: integer
+          enum:
+          - 10
+        syncActiveDeviceCount:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10
+        serverTime:
+          $ref: '#/components/schemas/UtcTimestamp'
+    SyncPushRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - mutations
+      properties:
+        mutations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncMutation'
+          maxItems: 100
+          minItems: 1
+      description: 最多100条且全部正文最多64MiB。完整批次先校验，再逐mutation原子提交；mutationId及recordId在同一批次均不得重复。
+    SyncAppliedResult:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - status
+      - revision
+      - editedAt
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        status:
+          type: string
+          enum:
+          - applied
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        editedAt:
+          $ref: '#/components/schemas/SyncEpochMillis'
+      description: editedAt 是首次处理时服务端截断后的有效时间，重试不重新计算。
+    SyncSupersededResult:
+      type: object
+      additionalProperties: false
+      required:
+      - mutationId
+      - status
+      - record
+      properties:
+        mutationId:
+          $ref: '#/components/schemas/SyncUuid'
+        status:
+          type: string
+          enum:
+          - superseded
+        record:
+          $ref: '#/components/schemas/SyncRecord'
+      description: 返回首次处理时完整胜出记录，包含墓碑；七天内重放仍是这个原结果。
+    SyncPushResult:
+      oneOf:
+      - $ref: '#/components/schemas/SyncAppliedResult'
+      - $ref: '#/components/schemas/SyncSupersededResult'
+    SyncPushResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - results
+      - processedCount
+      - hasMore
+      - serverTime
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncPushResult'
+          maxItems: 100
+          minItems: 1
+        processedCount:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 100
+        hasMore:
+          type: boolean
+        serverTime:
+          $ref: '#/components/schemas/UtcTimestamp'
+      description: results 是输入mutation的已提交连续前缀，processedCount等于其长度；hasMore=(processedCount<请求数量)。完整正文不超过64MiB，尾部尚未处理，保留原mutationId续传。
+    SyncPullResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - records
+      - nextCursor
+      - hasMore
+      - serverTime
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncRecord'
+          maxItems: 500
+        nextCursor:
+          $ref: '#/components/schemas/SyncRevision'
+        hasMore:
+          type: boolean
+        serverTime:
+          $ref: '#/components/schemas/UtcTimestamp'
+      description: 按revision严格递增；nextCursor等于最后返回记录revision，空页等于输入cursor。响应最多64MiB，hasMore只表示同一读取快照还有记录。
+    SyncErrorCode:
+      type: string
+      enum:
+      - AUTH_REQUIRED
+      - SESSION_REVOKED
+      - NO_ENTITLEMENT
+      - DEVICE_LIMIT
+      - SCHEMA_UNSUPPORTED
+      - RATE_LIMITED
+      - VALIDATION
+      - INTERNAL_ERROR
+      - SYNC_NOT_ACTIVE
+      - SYNC_QUOTA_EXCEEDED
+    SyncCloudError:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              $ref: '#/components/schemas/SyncErrorCode'
+            message:
+              type: string
+              maxLength: 512
+      description: 仅同步操作的固定错误集合；不扩改0.1.1账号错误schema，不含payload、URL、密钥、SQL或stack。
+  responses:
+    ValidationError:
+      description: 请求参数或 challenge 校验失败；error.code 为 VALIDATION。仅邮箱 challenge 校验附 error.reason，普通参数校验无
+        reason；具体尝试和终止规则见 email/verify。
+      x-contract-status: accepted-first-batch
+      x-error-codes:
+      - VALIDATION
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    AuthenticationError:
+      description: 'error.code 为 AUTH_REQUIRED 或 SESSION_REVOKED。
+
+        access token 失效可由客户端触发一次合并的刷新；refresh 无效或会话撤销时转为退出状态。refresh 错误优先级与 logout 凭据校验见对应操作描述，不把已撤销会话概括为自然到期
+        AUTH_REQUIRED。
+
+        logout 的未知 401 不证明撤销成功，待撤销项仍保留；依据 proof 原到期时间确认失效时清除队列项并报告 CloudRevocationUnavailableException，远端撤销未获确认。
+
+        客户端保留本机内容与代理凭据，不得因 Cloud 鉴权失败阻断本地功能。
+
+        '
+      x-contract-status: accepted-first-batch
+      x-error-codes:
+      - AUTH_REQUIRED
+      - SESSION_REVOKED
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    RateLimitedError:
+      description: error.code 为 RATE_LIMITED；Retry-After 给出从当前响应起应等待的整数秒数。
+      x-contract-status: accepted-first-batch
+      x-error-codes:
+      - RATE_LIMITED
+      headers:
+        Retry-After:
+          description: 最短等待秒数，本草案只使用秒数形式，不使用 HTTP-date。
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    InternalError:
+      description: 脱敏内部/框架失败；error.code 为 INTERNAL_ERROR。
+      x-error-codes:
+      - INTERNAL_ERROR
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    NotFoundError:
+      description: 资源不存在；未知、跨账号或已移除的 deviceId 统一 NOT_FOUND，重复移除也返回 404，避免泄露资源归属。该响应不证明首次删除成功。
+      x-error-codes:
+      - NOT_FOUND
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    SyncError400:
+      description: 参数、重复ID、同mutationId不同内容、未来baseRevision等；不解析message。
+      x-error-codes:
+      - VALIDATION
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError401:
+      description: JWT、账号或会话无效/撤销。每事务重新检查。
+      x-error-codes:
+      - AUTH_REQUIRED
+      - SESSION_REVOKED
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+        WWW-Authenticate:
+          required: true
+          schema:
+            type: string
+            enum:
+            - Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError402:
+      description: 无有效付费权益，内容保留。
+      x-error-codes:
+      - NO_ENTITLEMENT
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError409:
+      description: 设备未激活或存储配额不足；activate还可能达到10台。
+      x-error-codes:
+      - SYNC_NOT_ACTIVE
+      - SYNC_QUOTA_EXCEEDED
+      - DEVICE_LIMIT
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError413:
+      description: 解压正文或单记录超过固定限额。
+      x-error-codes:
+      - VALIDATION
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError415:
+      description: MIME或Content-Encoding不支持。
+      x-error-codes:
+      - VALIDATION
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError426:
+      description: 同步版本/schemaVersion/记录类型不支持，停止同步，不推进cursor。
+      x-error-codes:
+      - SCHEMA_UNSUPPORTED
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError429:
+      description: 共享每账号固定窗口：activate/push/pull各60次/分钟；Retry-After为剩余整数秒。
+      x-error-codes:
+      - RATE_LIMITED
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+        Retry-After:
+          required: true
+          description: 最短等待的整数秒，不使用HTTP-date。
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError500:
+      description: 脱敏内部失败，未提交的mutation不写入。
+      x-error-codes:
+      - INTERNAL_ERROR
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+    SyncError503:
+      description: 密钥或必要依赖不可用，不接受未加密写入。
+      x-error-codes:
+      - INTERNAL_ERROR
+      headers:
+        Cache-Control:
+          description: 含秘密的成功和错误响应禁止缓存，值固定no-store。
+          required: true
+          schema:
+            type: string
+            enum:
+            - no-store
+        Retry-After:
+          required: true
+          schema:
+            type: integer
+            enum:
+            - 30
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SyncCloudError'
+x-confirmed-by:
+- 用户确认D11严格时间LWW；其余工程约束按本次同步设计授权制定，见D96
+- 规范冻结不等于两端运行实现或生产验收
+x-normative-protocol: SYNC_PROTOCOL.md
+x-contract-lock: contract.lock.json
+x-sync-protocol-version: 1
+x-sync-limits:
+  recordUtf8Bytes: 33554432
+  bodyUtf8Bytes: 67108864
+  pushMutations: 100
+  pullRecords: 500
+  jsonDepth: 64
+  accountLivePayloadBytes: 268435456
+  accountRecordCountIncludingTombstones: 100000
+  accountMutationResultCiphertextBytes: 536870912
+  idempotencySeconds: 604800
+  requestsPerOperationPerMinute: 60
+  accountMutationResultCount: 1000000
+x-single-session-policy: 客户端仅一个活动账号/会话；服务端同账号/同installation新登录事务替换旧session，保留设备激活。不凭可伪造installationId跨账号撤销。此为D96新增行为，现有服务尚未实现。

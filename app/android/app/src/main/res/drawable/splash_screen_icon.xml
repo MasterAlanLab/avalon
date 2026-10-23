@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12's system splash stays blank (only the startup background)
+     while the Flutter engine creates its first frame; Flutter then plays
+     the whole animated timeline (app/lib/app/startup_splash.dart). Without
+     an icon here the system would show the launcher icon instead. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

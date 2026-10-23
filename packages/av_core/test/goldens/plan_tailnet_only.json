@@ -1,0 +1,107 @@
+{
+  "log": {
+    "level": "info"
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "local",
+        "tag": "local"
+      },
+      {
+        "type": "tailscale",
+        "tag": "ts",
+        "endpoint": "ts-ep",
+        "accept_search_domain": true
+      }
+    ],
+    "rules": [
+      {
+        "preferred_by": [
+          "ts"
+        ],
+        "server": "ts"
+      },
+      {
+        "domain_suffix": [
+          "ts.net"
+        ],
+        "server": "ts"
+      }
+    ],
+    "final": "local"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": [
+        "172.19.0.1/30"
+      ],
+      "mtu": 9000,
+      "auto_route": true,
+      "strict_route": false,
+      "stack": "mixed",
+      "route_address": [
+        "100.64.0.0/10",
+        "fd7a:115c:a1e0::/48",
+        "100.100.100.100/32"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "type": "tailscale",
+      "tag": "ts-ep",
+      "state_directory": "/state/tailscale",
+      "hostname": "mac",
+      "accept_routes": true,
+      "advertise_exit_node": false
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "ip_cidr": [
+          "100.64.0.0/10",
+          "fd7a:115c:a1e0::/48"
+        ],
+        "outbound": "ts-ep"
+      },
+      {
+        "domain_suffix": [
+          "ts.net"
+        ],
+        "outbound": "ts-ep"
+      },
+      {
+        "preferred_by": [
+          "ts-ep"
+        ],
+        "outbound": "ts-ep"
+      }
+    ],
+    "final": "direct",
+    "auto_detect_interface": true,
+    "default_domain_resolver": "local"
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "path": "/state/cache.db"
+    }
+  }
+}

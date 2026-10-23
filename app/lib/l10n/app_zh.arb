@@ -1,0 +1,1206 @@
+{
+  "@@locale": "zh",
+  "tabDashboard": "仪表盘",
+  "tabProxies": "代理",
+  "tabConfigurations": "配置",
+  "tabTools": "工具",
+  "cancel": "取消",
+  "save": "保存",
+  "add": "添加",
+  "edit": "编辑",
+  "delete": "删除",
+  "done": "完成",
+  "retry": "重试",
+  "justNow": "刚刚",
+  "minutesAgo": "{n} 分钟前",
+  "@minutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{n} 小时前",
+  "@hoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "daysAgo": "{n} 天前",
+  "@daysAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "configurationsTitle": "配置",
+  "refreshAll": "全部更新",
+  "selfConfigurationName": "自建节点",
+  "sourceSubscription": "订阅",
+  "sourceFile": "本地文件",
+  "sourceLocal": "本地 · {chains} 条代理链",
+  "@sourceLocal": {
+    "placeholders": {
+      "chains": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeCount": "{n} 个节点",
+  "@nodeCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "updatedAt": "{when}更新",
+  "@updatedAt": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "notDownloaded": "尚未下载",
+  "expiresOn": "{date} 到期",
+  "@expiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "lastSuccess": "上次成功：{when}",
+  "@lastSuccess": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "configurationsEmpty": "添加订阅链接、配置文件或独立节点即可开始。",
+  "deleteConfigurationTitle": "删除「{name}」？",
+  "@deleteConfigurationTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteConfigurationBody": "该配置的选择记录和加入其中的节点会一并移除，引用其节点的代理链将显示「不可用」。",
+  "addTitle": "添加",
+  "addSegmentSubscription": "订阅",
+  "addSegmentNode": "独立节点",
+  "addSegmentChain": "代理链",
+  "subscriptionUrl": "订阅链接",
+  "subscriptionUrlHint": "https://… 支持 sing-box / Clash 订阅",
+  "name": "名称",
+  "nameAuto": "自动读取",
+  "scanQr": "扫描二维码",
+  "importFile": "从文件导入",
+  "dropFileHint": "或拖入配置文件 .json（sing-box）/ .yaml（Clash）",
+  "autoUpdate": "自动更新",
+  "localOnlyNote": "保存在本机。",
+  "defaultSubscriptionName": "新订阅",
+  "comingSoon": "该功能将在后续版本提供。",
+  "coreNotConnected": "内核未接入",
+  "coreNotConnectedNote": "连接、测速与实时数据将在接入内核后可用。",
+  "currentConfiguration": "当前配置",
+  "noConfigurationSelected": "未选择配置",
+  "errorInvalidUrl": "链接无效，请填写 http:// 或 https:// 开头的订阅链接。",
+  "errorBlockedAddress": "内容指向了本机或局域网地址，已阻止。",
+  "errorTimeout": "连接超时，请检查网络后重试。",
+  "errorTooLarge": "内容超过 16 MiB 上限。",
+  "errorTooManyRedirects": "重定向次数过多。",
+  "errorHttpStatus": "服务器返回错误（HTTP {status}）。",
+  "@errorHttpStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "errorTls": "安全连接失败，证书无效或握手失败。",
+  "errorNetwork": "网络错误，无法连接服务器。",
+  "errorUnknownFormat": "无法识别内容格式：支持 sing-box JSON、Clash YAML 与分享链接列表。",
+  "errorMalformed": "内容格式错误。",
+  "errorUnknownParameter": "不支持的参数：{field}。",
+  "@errorUnknownParameter": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnsupportedValue": "不支持的取值：{field}。",
+  "@errorUnsupportedValue": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "errorMissingField": "缺少必填项：{field}。",
+  "@errorMissingField": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "errorInvalidField": "字段无效：{field}。",
+  "@errorInvalidField": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "errorTooLargeContent": "内容超出上限（{field}）。",
+  "@errorTooLargeContent": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUnsupportedScheme": "无法识别的分享链接协议。",
+  "errorVaultLocked": "本机安全存储已重置，请重新输入凭据或从备份恢复。",
+  "errorUnknown": "操作失败，请重试。",
+  "savedWithWarnings": "已保存，部分内容未导入：",
+  "warnUnsupportedNodeType": "跳过 {count} 个 {subject} 节点：Avalon 不支持该协议",
+  "@warnUnsupportedNodeType": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "warnUnsupportedNodeOption": "跳过 {count} 个节点：不支持选项 {subject}",
+  "@warnUnsupportedNodeOption": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "warnIgnoredNodeOption": "{count} 个节点的选项 {subject} 未生效",
+  "@warnIgnoredNodeOption": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "warnUnreadableEntry": "跳过 {count} 项无法读取的内容（{subject}）",
+  "@warnUnreadableEntry": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "warnUnsupportedGroupType": "跳过 {subject} 类型的组",
+  "@warnUnsupportedGroupType": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "warnUnsupportedRule": "跳过 {count} 条 {subject} 规则",
+  "@warnUnsupportedRule": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "warnUnsupportedRuleSet": "规则集 {subject} 无法使用，相关规则已跳过",
+  "@warnUnsupportedRuleSet": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "warnInsecureTls": "{count} 个节点关闭了证书验证",
+  "@warnInsecureTls": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "warnMissingFinal": "未指定兜底规则，未匹配的流量将直连",
+  "warnDroppedMember": "组成员 {subject} 不存在或已跳过",
+  "@warnDroppedMember": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      }
+    }
+  },
+  "databaseTooNew": "请更新 Avalon",
+  "databaseTooNewNote": "本机数据来自更新版本的 Avalon，请更新应用后打开。",
+  "startupFailed": "无法打开本机数据",
+  "ok": "好",
+  "modeRule": "规则",
+  "modeGlobal": "全局",
+  "modeDirect": "直连",
+  "statusConnected": "已连接",
+  "statusDisconnected": "未连接",
+  "addConfigurationTitle": "添加配置",
+  "addPrompt": "添加订阅、独立节点或代理链",
+  "nodeCountUnknown": "— 个节点",
+  "usedOnly": "已用 {used}",
+  "@usedOnly": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      }
+    }
+  },
+  "refreshFailed": "更新失败：{reason}",
+  "@refreshFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "autoUpdateSubtitle": "每 12 小时自动更新",
+  "testLatency": "测速",
+  "directModeNote": "直连模式下直接访问目标地址",
+  "groupSummary": "{type} · {n} 个节点",
+  "@groupSummary": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "groupCurrent": "当前 {name}",
+  "@groupCurrent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "customGroup": "自定义",
+  "autoGroupNote": "此组按延迟自动选择",
+  "unavailable": "不可用",
+  "memberChain": "代理链 · {n} 跳",
+  "@memberChain": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "memberGroup": "{type} 组",
+  "@memberGroup": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "memberDirect": "直连",
+  "memberReject": "拒绝",
+  "noConfigurationSelectedNote": "在「配置」中添加或选择一个配置后，这里会显示它的代理组。",
+  "goToConfigurations": "前往配置",
+  "customEmpty": "添加独立节点或代理链，管理自建连接。",
+  "contentNotDownloaded": "订阅尚未下载",
+  "pasteLinkHint": "粘贴 vless:// vmess:// hy2:// …",
+  "pasteLinkHintDesktop": "粘贴 vless:// vmess:// ss:// hy2:// 分享链接",
+  "parse": "解析",
+  "protocol": "协议",
+  "sectionServer": "服务器",
+  "sectionTransport": "传输方式",
+  "sectionSecurity": "传输层安全",
+  "securityNone": "无",
+  "nodeNameHint": "东京 VPS",
+  "fieldServer": "地址",
+  "fieldPort": "端口",
+  "fieldPassword": "密码",
+  "fieldObfsPassword": "混淆密码",
+  "fieldUsername": "用户名",
+  "fieldUpMbps": "上行 Mbps",
+  "fieldDownMbps": "下行 Mbps",
+  "fieldCongestion": "拥塞控制",
+  "fieldMethod": "加密",
+  "fieldIdleCheck": "空闲会话检查",
+  "fieldPath": "路径",
+  "fieldPublicKey": "公钥",
+  "fieldRequiredHint": "必填",
+  "fieldOptionalHint": "可选",
+  "nodeSavedNote": "保存到「自建节点」。",
+  "fieldRequired": "请填写{field}。",
+  "@fieldRequired": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldInvalid": "{field}格式不正确。",
+  "@fieldInvalid": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldUnsupported": "不支持的{field}取值。",
+  "@fieldUnsupported": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "chainNameHint": "默认用节点名拼接",
+  "sectionChain": "链路",
+  "sectionChainDesktop": "链路 · 本机 → … → 目标网站",
+  "chainSummary": "{n} 跳 · {latency}",
+  "@chainSummary": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "latency": {
+        "type": "String"
+      }
+    }
+  },
+  "chainLatencyEstimate": "≈ {ms} ms",
+  "@chainLatencyEstimate": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "hopLocal": "本机",
+  "hopTarget": "目标网站",
+  "addHop": "添加一跳",
+  "roleEntry": "入口",
+  "roleRelay": "中转",
+  "roleExit": "出口",
+  "chainNote": "流量依次经过每一跳，最后一跳为出口，可组合不同协议。",
+  "sectionJoinGroups": "加入代理组",
+  "chainTooShort": "代理链至少需要 2 跳",
+  "noHopCandidates": "先添加订阅或独立节点，再选择代理链中的节点。",
+  "editTitle": "编辑",
+  "savedSecretHint": "已保存",
+  "errorEditConflict": "内容已在其他设备或窗口修改，已重新载入，请再检查一遍。",
+  "errorNotFound": "该项目已不存在。",
+  "deleteItemTitle": "删除「{name}」？",
+  "@deleteItemTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteNodeBody": "节点会从它加入的所有代理组中移除。",
+  "deleteChainBody": "代理链会从它加入的所有代理组中移除，链上的节点保留。",
+  "nodeInUseTitle": "无法删除",
+  "nodeInUseBody": "「{name}」正被以下代理链使用，请先修改或删除它们：{chains}",
+  "@nodeInUseBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "chains": {
+        "type": "String"
+      }
+    }
+  },
+  "sectionView": "查看",
+  "sectionSettings": "设置",
+  "sectionOther": "其他",
+  "toolConnections": "连接",
+  "toolLogs": "日志",
+  "toolLoginSync": "登录与同步",
+  "toolBasic": "基础设置",
+  "toolAdvanced": "高级设置",
+  "toolApps": "分应用代理",
+  "toolGeo": "GEO 规则集",
+  "toolAbout": "关于 Avalon",
+  "toolAboutShort": "关于",
+  "sectionGeneral": "通用",
+  "language": "语言",
+  "languageZh": "简体中文",
+  "appearance": "外观",
+  "appearanceLight": "浅色",
+  "appearanceDark": "深色",
+  "sectionStartup": "启动",
+  "launchAtStartup": "开机自动启动",
+  "launchAtStartupNoteAndroid": "Android 开机后在后台运行",
+  "launchAtStartupNoteDesktop": "登录系统后自动运行 Avalon",
+  "launchAtStartupFailed": "登录启动设置失败，请重新切换此开关重试。",
+  "launchAtStartupNeedsApproval": "请在系统设置 → 通用 → 登录项中允许 Avalon。",
+  "launchAtStartupNoteIos": "在系统设置中开启 VPN「按需连接」。",
+  "silentStart": "静默启动",
+  "silentStartNote": "启动后收起主窗口，在{tray}显示图标",
+  "@silentStartNote": {
+    "placeholders": {
+      "tray": {
+        "type": "String"
+      }
+    }
+  },
+  "trayMenuBar": "菜单栏",
+  "traySystemTray": "系统托盘",
+  "autoConnect": "启动后自动连接",
+  "autoConnectNote": "打开应用时自动启动代理",
+  "keepOnClose": "关闭窗口时保留在{tray}",
+  "@keepOnClose": {
+    "placeholders": {
+      "tray": {
+        "type": "String"
+      }
+    }
+  },
+  "sectionProxy": "代理",
+  "systemProxy": "系统代理",
+  "systemProxyNoteMac": "设置 macOS 网络代理",
+  "systemProxyNoteWindows": "设置 Windows 系统代理（WinINet）",
+  "systemProxyNoteLinux": "写入 GNOME / KDE 代理设置",
+  "systemProxyNeedsTun": "需要先启用 TUN",
+  "allowLan": "允许局域网连接",
+  "allowLanNote": "其他设备可连接本机代理端口",
+  "mixedPort": "混合端口",
+  "sectionHotkeys": "快捷键",
+  "hotkeyToggle": "启动 / 停止代理",
+  "hotkeyMode": "切换出站模式",
+  "hotkeyShow": "显示主窗口",
+  "hotkeyTaken": "已被占用",
+  "hotkeyUnsupported": "暂不支持",
+  "trayStart": "启动代理",
+  "trayStop": "停止代理",
+  "trayMode": "出站模式",
+  "trayQuit": "退出 Avalon",
+  "sectionNotification": "通知",
+  "speedNotification": "通知栏显示实时速度",
+  "sectionLatency": "延迟测试",
+  "testUrl": "测速地址",
+  "testTimeout": "超时",
+  "milliseconds": "{n} ms",
+  "@milliseconds": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sectionData": "数据",
+  "exportBackup": "导出备份…",
+  "restoreBackup": "从文件恢复…",
+  "backupNote": "备份包含订阅、自建节点、代理链和全部设置。",
+  "sectionTun": "虚拟网卡 TUN",
+  "tunEnabled": "启用 TUN",
+  "tunNote": "接管设备全部流量",
+  "tunNoteMac": "utun · 需要授权网络扩展",
+  "tunNoteWindows": "WinTUN · 需要管理员权限",
+  "tunNoteLinux": "tun0 · 需要 CAP_NET_ADMIN",
+  "tunStack": "协议栈",
+  "autoRoute": "自动路由",
+  "strictRoute": "严格路由",
+  "strictRouteNote": "严格执行隧道路由规则",
+  "remoteDns": "远程 DNS",
+  "directDns": "直连 DNS",
+  "dnsStrategy": "解析策略",
+  "dnsPreferIpv4": "优先 IPv4",
+  "dnsIpv4Only": "仅 IPv4",
+  "dnsPreferIpv6": "优先 IPv6",
+  "dnsIpv6OffNote": "IPv6 已关闭，解析按「仅 IPv4」生效。",
+  "sectionRouting": "路由",
+  "sniff": "流量嗅探",
+  "sniffNote": "识别 TLS / HTTP / QUIC 域名",
+  "bypassLan": "绕过局域网与保留地址",
+  "findProcess": "查找进程",
+  "findProcessNote": "用于分应用代理和连接页显示应用",
+  "findProcessNoteDesktop": "用于分应用代理和连接页显示程序",
+  "clashApi": "外部控制器",
+  "clashApiNote": "供 Web 面板或第三方客户端控制",
+  "clashListen": "监听地址",
+  "clashListenRisk": "同一网络中的其他设备可通过此监听地址控制代理。",
+  "clashSecret": "密钥",
+  "secretView": "查看",
+  "secretCopy": "复制",
+  "secretRegenerate": "重新生成",
+  "secretRegenerateConfirm": "重新生成后，使用旧密钥的面板和客户端需要改用新密钥。",
+  "copied": "已复制",
+  "webPanel": "Web 面板",
+  "openWebPanel": "打开 metacubexd",
+  "webPanelNotRunning": "代理尚未运行，请先连接后再打开 Web 面板。",
+  "webPanelControllerOff": "运行中的外部控制器已关闭，请在高级设置中启用并生效后再打开 Web 面板。",
+  "webPanelStateUnknown": "暂时无法读取外部控制器当前状态，请检查代理连接后重试。",
+  "webPanelBrowserFailed": "系统浏览器未能打开 Web 面板，请检查浏览器后重试。",
+  "sectionCore": "内核",
+  "logLevel": "日志等级",
+  "configOverride": "配置覆写",
+  "editJson": "编辑 JSON…",
+  "viewGeneratedConfig": "查看生成的配置",
+  "generatedConfig": "生成的配置",
+  "viewAction": "查看…",
+  "overrideNote": "配置覆写会合并到每个订阅生成的 sing-box 配置中，适合自定义路由规则或出站。",
+  "resetDefaults": "恢复默认设置",
+  "resetDefaultsConfirm": "恢复本页所有设置为默认值？配置覆写和 Clash API 密钥会保留。",
+  "reset": "恢复",
+  "settingInvalid": "格式不正确。",
+  "settingOutOfRange": "请输入 {min}–{max} 之间的数字。",
+  "@settingOutOfRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "remoteDnsHint": "以 https:// 或 tls:// 开头",
+  "directDnsHint": "IP 地址，或以 udp:// 开头",
+  "testUrlHint": "以 http:// 或 https:// 开头",
+  "clashListenHint": "地址:端口，如 127.0.0.1:9090",
+  "aboutVersion": "版本",
+  "aboutCore": "内核",
+  "aboutLicense": "许可证",
+  "aboutThanks": "致谢 sing-box 与开源社区",
+  "overrideKeysNote": "支持 outbounds、route.rules、route.rule_set、route.final、dns.servers、dns.rules。引用节点或代理组时使用显示名称。覆写应用于导入的配置。",
+  "overrideSyntax": "JSON 语法错误：第 {line} 行第 {column} 列。",
+  "@overrideSyntax": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "overrideNotObject": "最外层应为一个 JSON 对象。",
+  "overrideNotAllowed": "不允许的键：{path}",
+  "@overrideNotAllowed": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "overrideWrongType": "{path} 的类型不对，应为{type}。",
+  "@overrideWrongType": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "jsonObject": "对象",
+  "jsonArray": "数组",
+  "jsonString": "字符串",
+  "jsonTaggedObject": "带 tag 的对象",
+  "overrideReference": "找不到名为「{name}」的节点或代理组（{path}）。",
+  "@overrideReference": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "overrideConflict": "标签「{name}」与生成的配置冲突（{path}），请换一个名称。",
+  "@overrideConflict": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "compileNothingSelected": "请先在「配置」中选择一个配置。",
+  "compileMemberUnavailable": "「{name}」不可用，无法生成配置。",
+  "@compileMemberUnavailable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "compileEmptyGroup": "代理组「{name}」没有可用的成员。",
+  "@compileEmptyGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "compileRuleSetMissing": "规则集「{name}」尚未下载或无法使用。",
+  "@compileRuleSetMissing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "compilePerAppNeedsFindProcess": "分应用代理需要开启「查找进程」。",
+  "compileInvalidSetting": "设置项无效：{name}。",
+  "@compileInvalidSetting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "generatedNote": "秘密已替换为 ••••。这是按当前选中的配置和设置生成的内容。",
+  "copyAll": "复制",
+  "backupPassword": "备份密码",
+  "backupPasswordNote": "密码至少 8 位，请妥善保管，恢复备份时使用。",
+  "passwordHint": "密码",
+  "passwordAgainHint": "再次输入密码",
+  "passwordTooShort": "密码至少需要 8 位。",
+  "passwordMismatch": "两次输入的密码不一致。",
+  "backupEncrypting": "正在加密备份…",
+  "backupExported": "备份已导出",
+  "restorePassword": "输入备份密码",
+  "restoreConfirmTitle": "从备份恢复？",
+  "restoreConfirmBody": "恢复会覆盖同名设置和相同对象，本机其他内容保留。",
+  "restoring": "正在恢复…",
+  "restoreDoneTitle": "恢复完成",
+  "restoreDoneBody": "已恢复 {configs} 个配置、{nodes} 个自建节点、{chains} 条代理链，以及全部设置。",
+  "@restoreDoneBody": {
+    "placeholders": {
+      "configs": {
+        "type": "int"
+      },
+      "nodes": {
+        "type": "int"
+      },
+      "chains": {
+        "type": "int"
+      }
+    }
+  },
+  "backupWrongPassword": "密码错误，或文件已损坏。",
+  "backupNotABackup": "这不是 Avalon 备份文件。",
+  "backupUnsupportedVersion": "此备份来自更新版本的 Avalon，请先更新应用。",
+  "backupTooLarge": "文件超出备份的大小上限。",
+  "backupMalformed": "备份内容无法识别。",
+  "exportBackupAction": "导出",
+  "fileChoose": "选择 .json 或 .yaml",
+  "fileChooseNote": "sing-box 配置或 Clash 配置",
+  "dropFile": "或拖入配置文件",
+  "dropFileNote": ".json（sing-box）/ .yaml（Clash）",
+  "fileReplace": "点击更换",
+  "fileImportNote": "将文件内容保存为本机配置。",
+  "scanPrompt": "将订阅二维码放入框内",
+  "scanDenied": "需要相机权限才能扫码。可在系统设置中允许 Avalon 使用相机，或直接粘贴订阅链接。",
+  "scanUnavailable": "此设备上的相机不可用，请直接粘贴订阅链接。",
+  "scanNotSubscription": "二维码内容不是订阅链接（需以 http:// 或 https:// 开头）。",
+  "scanned": "已识别订阅链接",
+  "networkSpeed": "网络速度",
+  "todayUpload": "今日上传",
+  "todayDownload": "下载",
+  "todayTraffic": "今日流量",
+  "currentNode": "当前节点",
+  "exitIp": "出口 IP",
+  "modeRuleFull": "规则模式",
+  "modeGlobalFull": "全局模式",
+  "modeDirectFull": "直连模式",
+  "addConfigurationFirst": "请先添加配置",
+  "aboutVersionLine": "版本 {version}",
+  "@aboutVersionLine": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "keyStorage": "安全存储",
+  "keyStorageFile": "本机文件（权限 0600）",
+  "licensesTitle": "许可与第三方声明",
+  "licenseCount": "{n} 份许可",
+  "@licenseCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "licensesNote": "Avalon 以 AGPL-3.0 发布。以下是随应用分发的开源组件及其许可。",
+  "search": "搜索",
+  "turnOn": "开启",
+  "perAppWhitelist": "白名单",
+  "perAppBlacklist": "黑名单",
+  "appsHintEmpty": "未选择应用时，全部应用按规则代理。",
+  "appsHintWhitelist": "仅开启的应用走代理，其余直连。",
+  "appsHintBlacklist": "开启的应用直连，其余走代理。",
+  "appsHintWhitelistDesktop": "仅开启的程序走代理，其余直连。",
+  "appsHintBlacklistDesktop": "开启的程序直连，其余走代理。",
+  "appNotInstalled": "未安装",
+  "addProgram": "添加程序",
+  "appsListFailed": "无法读取应用列表",
+  "appsListFailedNote": "下面只显示已保存的名单。",
+  "appsNoMatch": "没有匹配的应用",
+  "appsNoMatchDesktop": "没有匹配的程序",
+  "appsNoPrograms": "还没有程序。点「添加程序」选择要单独处理的程序。",
+  "appsNeedFindProcessNote": "开启「查找进程」，按程序应用代理规则。",
+  "rulesCount": "{n} 个规则集",
+  "@rulesCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "rulesAutoDaily": "每天自动更新",
+  "rulesAutoWeekly": "每周自动更新",
+  "rulesAutoOff": "自动更新已关闭",
+  "rulesUpdating": "更新中",
+  "sectionRuleSets": "规则集",
+  "sectionUpdateSettings": "更新设置",
+  "geoInterval": "更新间隔",
+  "geoDaily": "每天",
+  "geoWeekly": "每周",
+  "geoVia": "下载方式",
+  "geoViaProxy": "经代理",
+  "geoViaDirect": "直连",
+  "rulesNote": "管理和更新 GeoSite、GeoIP 及订阅引用的规则集。",
+  "ruleKindSet": "规则集",
+  "ruleNotDownloaded": "未下载",
+  "ruleUpdatedAgo": "{when}更新",
+  "@ruleUpdatedAgo": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "ruleDownloading": "下载中…",
+  "columnType": "类型",
+  "columnSize": "大小",
+  "columnUpdated": "更新时间",
+  "rulesNeedProxy": "请先启动代理，或改用直连下载",
+  "statusConnecting": "正在连接…",
+  "statusReconnecting": "正在重新连接",
+  "statusDisconnecting": "正在断开…",
+  "coreReady": "sing-box {version} 已就绪",
+  "@coreReady": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "connectedSummary": "{mode} · {exit}",
+  "@connectedSummary": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      },
+      "exit": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimePermissionRefused": "需要 VPN 授权才能连接",
+  "runtimePermissionRefusedNote": "再次点击连接，并在系统弹窗中允许。",
+  "runtimeNotDownloaded": "所选配置尚未下载，请先更新",
+  "runtimePlanFailed": "无法生成配置",
+  "runtimeHostUnreachable": "无法连接到 Avalon 服务",
+  "runtimePortInUse": "端口被占用，请更换混合端口",
+  "runtimeNoListedAppInstalled": "白名单里的应用都未安装",
+  "runtimeNoListedAppInstalledNote": "请在「分应用代理」的白名单中选择本机已安装的应用，或改用黑名单、清空名单。",
+  "appsNoneInstalled": "名单里的应用都未安装",
+  "appsNoneInstalledNote": "请在白名单中选择本机已安装的应用后启动代理。",
+  "runtimePlanRefused": "内核不接受这份配置",
+  "runtimeCoreFailed": "内核启动失败",
+  "runtimeTimeout": "Avalon 服务没有及时响应",
+  "errorConfigurationInUse": "请先断开或切换到其他配置",
+  "autoUpdateLocalOnlyNote": "每 12 小时自动更新，保存在本机。",
+  "latencyTimeout": "超时",
+  "latencyFailed": "失败",
+  "closeAll": "全部关闭",
+  "activeConnections": "{n} 个活动连接",
+  "@activeConnections": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "noConnections": "暂无连接",
+  "connectionsWhenRunning": "启动代理后，这里会实时显示连接",
+  "connectionsAllClosed": "所有连接已关闭",
+  "columnHost": "主机",
+  "columnProcess": "进程",
+  "columnRule": "规则",
+  "columnChain": "链路",
+  "columnUpload": "上传",
+  "columnDownload": "下载",
+  "ruleFinal": "默认",
+  "logsAll": "全部",
+  "logsDropped": "较早日志已丢弃",
+  "noLogs": "暂无日志",
+  "noLogsNote": "代理运行时，内核的日志会显示在这里",
+  "shareLogs": "分享日志",
+  "exportLogs": "导出日志",
+  "ruleDownloadFailed": "下载失败",
+  "cloudTitle": "Avalon Cloud",
+  "cloudLoginTitle": "登录 Avalon",
+  "cloudLoginNote": "使用邮箱验证码登录 Avalon。",
+  "cloudLoginIntro": "用邮箱登录，\n在你的设备间同步配置。",
+  "cloudEmailAddress": "邮箱地址",
+  "cloudCheckInbox": "查看你的邮箱",
+  "cloudCodeSentTo": "验证码已发送至",
+  "cloudSixDigitCode": "6 位验证码",
+  "cloudCodeHelper": "输入邮件中的验证码完成登录。",
+  "cloudClearEmail": "清空邮箱",
+  "cloudEmail": "邮箱",
+  "cloudEmailPlaceholder": "name@example.com",
+  "cloudCode": "验证码",
+  "cloudCodePlaceholder": "六位验证码",
+  "cloudSendCode": "发送验证码",
+  "cloudResendCode": "重新发送",
+  "cloudVerifyCode": "登录",
+  "cloudChangeEmail": "更换邮箱",
+  "cloudCodeSent": "验证码已发送，请查收邮箱。",
+  "cloudResendWait": "{seconds} 秒后可重新发送",
+  "@cloudResendWait": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudLoading": "正在恢复登录…",
+  "cloudWorking": "正在处理…",
+  "cloudAccount": "账号",
+  "cloudSignedIn": "已登录",
+  "cloudReload": "更新账号信息",
+  "cloudFreeAccount": "免费账户",
+  "cloudFreeAccountNote": "在本机管理和使用全部配置。",
+  "cloudSyncFreeAccountNote": "配置保存在本机。有效订阅可启用云同步。",
+  "cloudSyncTitle": "云同步",
+  "cloudLastSync": "上次同步",
+  "cloudNeverSynced": "从未同步",
+  "cloudSyncNow": "立即同步",
+  "cloudSyncing": "正在同步…",
+  "cloudSyncNoEntitlement": "当前没有有效同步权益，请更新账号信息。",
+  "cloudSyncDeviceLimit": "同步设备名额已满，请先移除其他设备后重试。",
+  "cloudSyncSchemaUnsupported": "云端数据版本暂不受支持，请更新客户端后重试。",
+  "cloudSyncQuotaExceeded": "云端同步容量不足，请减少同步内容后重试。",
+  "cloudSyncValidation": "部分本机内容不符合云端同步要求，请检查后重试。本机内容保留。",
+  "cloudSyncOwnership": "同步内容属于其他账号，请使用对应账号。本机内容保留。",
+  "cloudPendingMerge": "保留 {count} 项待合并的本机修改",
+  "@cloudPendingMerge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudSyncLegacyUnverified": "旧版同步资料来源待确认，上传和下载已暂停。本机内容保留。",
+  "cloudRebuildIncomplete": "备份尚不完整，请继续重建。",
+  "cloudRebuildChanged": "重建状态已变化，请更新账号信息后重试。",
+  "cloudBackupTitle": "云端备份",
+  "cloudBackupReady": "完整备份已就绪",
+  "cloudBackupRebuildRequired": "云端需要完整备份，请选择来源设备。",
+  "cloudBackupRebuilding": "正在重建云端备份，完成后发布。",
+  "cloudBackupRetained": "同步权益已到期，云端备份暂时保留。",
+  "cloudBackupRetired": "原云端备份已停止提供。",
+  "cloudBackupNone": "尚无云端备份",
+  "cloudBackupRetentionUntil": "备份保留至：{time}",
+  "@cloudBackupRetentionUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudBackupLocalNote": "本机配置与代理凭据保留，仍可编辑和使用。",
+  "cloudSyncGenerationChanged": "云端空间已更新，请重新获取状态后同步。本机内容保留。",
+  "cloudSyncSnapshotChanged": "完整下载期间云端内容发生变化，请重试。本机内容保留。",
+  "cloudSyncVerificationPending": "同步权益待核实，上传和下载已暂停。",
+  "cloudRebuildStart": "从此设备重建",
+  "cloudRebuildStartTitle": "从此设备重建云端备份？",
+  "cloudRebuildStartNote": "完整备份仅包含此设备上该账号的当前可同步内容。请先核对其他设备上的待上传修改。其他设备在备份发布后恢复同步，本机内容保留。",
+  "cloudRebuildClaim": "由此设备接管重建",
+  "cloudRebuildClaimTitle": "由此设备接管重建？",
+  "cloudRebuildClaimNote": "当前重建将停止，原尝试中尚未发布的内容将舍弃。新备份仅包含此设备上该账号的当前可同步内容。其他设备在完整备份发布后恢复同步，本机内容保留。",
+  "cloudRebuildCancel": "取消重建",
+  "cloudRebuildCancelTitle": "取消本次重建？",
+  "cloudRebuildCancelNote": "结束本次重建，舍弃尚未发布的备份。再次重建时请选择来源设备。本机内容保留。",
+  "cloudRebuildResume": "继续重建",
+  "cloudRebuildThisDevice": "此设备正在重建，完整备份发布后完成同步。",
+  "cloudRebuildWaiting": "其他设备正在重建；等待完整备份发布。",
+  "cloudRebuildProgress": "已上传 {received} / {total} 条",
+  "@cloudRebuildProgress": {
+    "placeholders": {
+      "received": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudCleanupOnline": "历史云端内容清理：{status}",
+  "@cloudCleanupOnline": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudCleanupKey": "历史在线密钥状态：{status}",
+  "@cloudCleanupKey": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudCleanupPending": "待处理",
+  "cloudCleanupRunning": "正在处理",
+  "cloudCleanupFailed": "处理未完成",
+  "cloudCleanupComplete": "已完成",
+  "cloudCleanupNone": "尚无结果",
+  "cloudCleanupWaiting": "等待密钥清理确认",
+  "cloudCleanupKeyDeleted": "在线密钥已移除",
+  "cloudCleanupKeyDeletedNote": "在线密钥已移除。灾备副本自原创建时间起最多保留 30 天。",
+  "cloudCleanupKeyDestroyed": "旧密钥已停用",
+  "cloudNetworkGuard": "该云端内容包含当前宿主无法安全处理的网络路径，请使用兼容版本或本机节点。",
+  "cloudEntitlement": "订阅权益",
+  "cloudMonthly": "月付",
+  "cloudYearly": "年付",
+  "cloudEntitlementActive": "有效",
+  "cloudEntitlementExpired": "已到期",
+  "cloudEntitlementRevoked": "已撤销",
+  "cloudEntitlementUnknown": "状态待确认",
+  "cloudEntitlementUntil": "{status} · 到期日 {date}",
+  "@cloudEntitlementUntil": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudAppleSource": "App Store",
+  "cloudGoogleSource": "Google Play",
+  "cloudWebSource": "网页购买渠道",
+  "cloudDevices": "设备 · {count} / {limit}",
+  "@cloudDevices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudThisDevice": "此设备",
+  "cloudNotSyncing": "未同步",
+  "cloudSyncSlotActive": "占用同步名额",
+  "cloudLastSeen": "最近活动：{time}",
+  "@cloudLastSeen": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDeviceIos": "iOS",
+  "cloudDeviceAndroid": "Android",
+  "cloudDeviceMacos": "macOS",
+  "cloudDeviceWindows": "Windows",
+  "cloudDeviceLinux": "Linux",
+  "cloudDeviceRemoveHint": "左滑或右键移除其他设备。此设备请使用「退出登录」。",
+  "cloudRemoveDevice": "移除",
+  "cloudRemoveDeviceTitle": "移除「{name}」？",
+  "@cloudRemoveDeviceTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudRemoveDeviceNote": "该设备将退出登录并释放同步名额；设备上的本地内容保留。",
+  "cloudLogout": "退出登录",
+  "cloudLogoutTitle": "退出 Avalon 账号？",
+  "cloudLogoutNote": "本机的配置、节点和代理凭据全部保留。离线时会在联网后自动撤销原会话。",
+  "cloudDeleteAccount": "删除账号",
+  "cloudDeleteFirstTitle": "删除 Avalon 账号？",
+  "cloudDeleteFirstNote": "将删除账号和云端内容；本机配置和代理凭据全部保留。",
+  "cloudDeleteContinue": "继续",
+  "cloudDeleteFinalTitle": "确认永久删除账号？",
+  "cloudDeleteFinalNote": "账号将永久删除。订阅及自动续费请前往原购买渠道另行取消。",
+  "cloudAccountDeleted": "账号已删除，本机内容已保留。",
+  "cloudCancelSubscription": "请前往 {sources} 取消订阅续费。",
+  "@cloudCancelSubscription": {
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudPendingRevocations": "{count} 个原会话等待撤销",
+  "@cloudPendingRevocations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudPendingRevocationsNote": "本机已退出，联网后会自动重试撤销原会话。",
+  "cloudRetryRevocations": "立即重试撤销",
+  "cloudRevocationUnconfirmed": "原会话凭据已失效，无法确认远端已撤销；本机仍保持退出。",
+  "cloudErrorDisabled": "账号与同步入口已关闭，请返回本机功能。",
+  "cloudErrorInvalidEmail": "请输入有效邮箱。",
+  "cloudErrorInvalidCode": "请输入六位数字验证码。",
+  "cloudErrorValidation": "请求未被接受，请检查输入后重试。",
+  "cloudErrorChallengeInvalid": "验证码或登录请求无效，请检查验证码或重新发送。",
+  "cloudErrorChallengeExpired": "验证码已过期，请重新发送。",
+  "cloudErrorChallengeExhausted": "验证码尝试次数已用尽，请重新发送。",
+  "cloudErrorChallengeEnded": "登录请求已结束或不存在，请重新发送验证码。",
+  "cloudErrorRateLimited": "请求过于频繁，请稍后重试。",
+  "cloudErrorRateLimitedWait": "请求过于频繁，请在 {seconds} 秒后重试。",
+  "@cloudErrorRateLimitedWait": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudErrorOffline": "无法连接 Cloud，请检查网络后重试。本机功能仍可使用。",
+  "cloudErrorTimeout": "Cloud 没有及时响应，请稍后重试。",
+  "cloudErrorProtocol": "Cloud 返回的数据无法读取，请更新应用或稍后重试。",
+  "cloudErrorReauthenticate": "请重新登录，或退出原会话。本机内容保留。",
+  "cloudErrorSessionRevoked": "登录已失效，请重新登录。",
+  "cloudErrorDeviceNotFound": "该设备已不存在，请更新账号信息。",
+  "cloudErrorCurrentDevice": "移除此设备请使用「退出登录」。",
+  "cloudErrorDeleteUnconfirmed": "删除结果未能确认。请更新账号信息或重新登录核对，再决定是否重试。",
+  "cloudErrorServer": "Cloud 暂时无法完成请求，请稍后重试。",
+  "cloudErrorUnknown": "操作未完成，请重试或重新登录。",
+  "cloudCodeExpires": "验证码有效至 {time}",
+  "@cloudCodeExpires": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tailnetTitle": "Tailscale",
+  "tailnetEnable": "启用 Tailscale",
+  "tailnetDisabled": "未启用",
+  "tailnetNeedsLogin": "需要登录",
+  "tailnetConnected": "已连接 · {tailnet}",
+  "tailnetOffline": "离线",
+  "tailnetThisDevice": "本机",
+  "tailnetHostname": "设备名称",
+  "tailnetAddresses": "IP 地址",
+  "tailnetNetwork": "Tailnet",
+  "tailnetExitNodes": "出口节点",
+  "tailnetNoExit": "无",
+  "tailnetNoExitNote": "互联网流量使用当前网络与代理设置。",
+  "tailnetExitOffline": "该出口节点离线，无法连接。",
+  "tailnetAcceptRoutes": "接受子网路由",
+  "tailnetAcceptRoutesNote": "访问 Tailnet 中设备发布的子网。",
+  "tailnetMagicDns": "MagicDNS",
+  "tailnetMagicDnsNote": "通过 Tailnet 设备名称访问设备。",
+  "tailnetAdvertiseExit": "将本机作为出口节点",
+  "tailnetAdvertiseExitNote": "允许 Tailnet 中的其他设备通过本机访问互联网。",
+  "tailnetLogout": "退出 Tailnet",
+  "tailnetLogin": "登录 Tailscale",
+  "tailnetUnavailable": "当前宿主无法运行 Tailscale。",
+  "tailnetError": "连接失败：{message}",
+  "tailnetBrowserFailed": "无法打开登录页面，请检查浏览器设置后重试。",
+  "tailnetDevicesOnline": "在线设备 · {count}",
+  "tailnetOnline": "在线",
+  "tailnetOptions": "选项",
+  "tailnetFixedRoutesNote": "通过 Tailscale 地址和设备名称访问 Tailnet 设备。",
+  "tailnetExitUseNote": "已选择的出口也可在自定义组中使用。",
+  "tailnetExitConflict": "请在使用其他出口和将本机作为出口之间选择一项。",
+  "tailnetWaiting": "等待登录…",
+  "tailnetPermissionRefused": "需要系统网络授权才能启用 Tailscale。",
+  "@tailnetConnected": {
+    "placeholders": {
+      "tailnet": {
+        "type": "String"
+      }
+    }
+  },
+  "@tailnetError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@tailnetDevicesOnline": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aboutCheckUpdates": "检查更新",
+  "aboutCheckingUpdates": "检查中…",
+  "aboutUpdateAvailable": "新版本 {version}",
+  "aboutUpToDate": "已是最新版本",
+  "aboutNoRelease": "暂无兼容版本发布",
+  "aboutSource": "GitHub 源代码",
+  "aboutChangelog": "更新日志",
+  "aboutPrivacy": "隐私政策",
+  "aboutUpdateFailed": "检查更新失败，请检查网络后重试。",
+  "aboutBrowserFailed": "无法打开网页，请检查浏览器设置。",
+  "@aboutUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "tailnetExitNotReady": "出口节点功能待开放。当前可访问 Tailnet 内的设备。",
+  "tailnetAdvertiseNotReady": "本机出口功能待开放。",
+  "systemProxyFailed": "系统代理设置或恢复失败，请检查系统权限后重试。",
+  "manageSelfContent": "管理"
+}

@@ -1,0 +1,708 @@
+openapi: 3.0.3
+info:
+  title: Avalon Cloud 客户端公开接口
+  version: 0.1.1
+  x-contract-status: accepted-first-batch
+  description: Avalon 客户端与服务端已确认的首批 7 个操作合同。验收范围为邮箱认证、会话、账号与设备接口基础层，不包含完整 Cloud UI 或 C1/C2；后续操作仍单独列出，实施与实际验证证据见 IMPLEMENTATION_PLAN。正式公开契约归客户端仓库本文件。请求与响应正文、令牌、验证码及明文邮箱禁止进入日志。
+x-contract-status: accepted-first-batch
+x-canonical-path: docs/api/cloud.openapi.yaml
+x-contract-scope: email-auth-session-account-device-first-batch
+x-sources:
+- docs/CLOUD_SYNC.md §3、§4、§8、§9、§11
+- docs/PRODUCT_SPEC.md §3.14
+x-open-questions:
+- id: refresh-response-loss
+  question: 刷新成功但响应丢失后的恢复方案尚待双方确认；是否增加短期幂等机制须明确修订契约。
+  currentRule: 每次刷新轮换 refresh token；旧 token 重放撤销整个会话。客户端禁止自动重试旧 token，并合并同一会话的并发刷新。
+- id: multiple-sessions-per-installation
+  question: 同一 installationId 存在多个有效会话时，退出其中一个如何释放设备同步名额尚待确认。
+  currentRule: 设备按 accountId 与 installationId 唯一标识；移除设备撤销它的全部会话。设备名额仅在 sync/activate 时占用。
+- id: entitlement-expiry-device-slot
+  question: 权益到期是否释放已有 syncActive 设备名额尚未由现行文档规定。
+  currentRule: 到期后停止同步，云端数据保留至删除账号。
+- id: delete-idempotency
+  question: 删除账号成功响应丢失后的恢复证明尚待双方确认；设备重复移除已确定为 404，该响应不能证明首次删除成功。
+  currentRule: 删除账号撤销全部会话，401 不作为删除成功证明；移除设备撤销该设备全部会话，已移除、未知及跨账号目标统一 404 NOT_FOUND。
+x-deferred-operations:
+- operations:
+  - POST /v1/auth/apple
+  - POST /v1/auth/google
+  reason: 后续必须补齐原生 identity token、issuer、audience、nonce 校验契约；不属于本批。
+- operations:
+  - POST /v1/auth/web/start
+  - GET /v1/auth/web/{id}
+  reason: 后续必须补齐 OAuth PKCE/state/nonce、10 分钟会话、轮询秘密与结果丢包恢复契约；不属于本批。
+- operations:
+  - GET /v1/plans
+  - POST /v1/billing/apple
+  - POST /v1/billing/google
+  - POST /v1/billing/web/checkout
+  - POST /v1/billing/restore
+  - POST /v1/billing/webhooks/{provider}
+  reason: 后续必须补齐价格、购买与恢复及渠道通知契约；不属于本批。
+- operations:
+  - POST /v1/sync/activate
+  - POST /v1/sync/push
+  - GET /v1/sync/pull
+  reason: 后续必须补齐同步名额、游标、幂等 mutation 与完整 payload；说明中的 envelope 不构成已批准的完整规范。
+tags:
+- name: auth
+  description: 邮箱登录与当前会话管理
+- name: account
+  description: 当前账号、权益与设备快照
+- name: devices
+  description: 当前账号下的设备管理
+security:
+- BearerAuth: []
+paths:
+  /v1/auth/email/start:
+    post:
+      operationId: startEmailChallenge
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 发送邮箱验证码
+      description: '不以响应透露账号是否存在；成功时返回 challengeId 与 expiresAt。
+
+        expiresAt 为服务端当前时间加 10 分钟的 UTC RFC3339 时间。
+
+        验证码为 6 位，10 分钟有效；每个 challenge 最多验证 5 次。
+
+        同一邮箱每小时最多发送 5 次，同一 IP 每小时最多发送 100 次。
+
+        限流应与账号存在性无关；限流错误使用 429 RATE_LIMITED。小时配额 Retry-After 为 3600 秒，通用 HTTP 限流为 60 秒。
+
+        成功发送不增加 60 秒冷却或 resendAfter。expiresAt 不是重发限制；重发仅依据 429 的 Retry-After 等待。
+
+        '
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailStartRequest'
+      responses:
+        '200':
+          description: 已受理验证码请求；响应形状不反映账号存在性。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailStartResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/auth/email/verify:
+    post:
+      operationId: verifyEmailChallenge
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 验证邮箱验证码并登录
+      description: 'code 必须作为字符串传输，以保留前导零。服务端消费有效 challenge 并绑定安装设备。
+
+        设备按 accountId 与 installationId 查找或创建；会话绑定该设备。
+
+        登录本身不要求付费，也不占用同步设备名额；付费同步另由 sync/activate 激活。
+
+        登录响应以及所有令牌写入客户端加密秘密表。
+
+        challenge 校验失败返回 400 VALIDATION，error.reason 为 wrongCode、expired、attemptsExceeded、consumed 或 missing；普通参数校验不附 reason。
+
+        前四次错码为 wrongCode，第五次错码为 attemptsExceeded，第五次正确仍可成功。已消费、过期或耗尽的 challenge 不再计尝试，未知 challenge 为 missing。
+
+        expired 表示服务端当前时间达到 expiresAt；客户端显示服务器状态，不以本机时钟代替服务器校验。多个终止条件同时成立的裁决顺序不在本增量中另作规定。
+
+        '
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerifyRequest'
+      responses:
+        '200':
+          description: 登录成功；返回当前会话的令牌与身份绑定。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/auth/refresh:
+    post:
+      operationId: refreshSession
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 轮换当前会话的令牌
+      description: '通过请求体中的 refresh token 认证，不依赖尚有效的 access token。
+
+        access token 为 JWT，有效期 15 分钟，携带 accountId、deviceId、sessionId。
+
+        refresh token 为不透明随机串，有效期 90 天；每次刷新轮换并顺延期限。
+
+        无法识别的 refresh token 返回 401 AUTH_REQUIRED；可识别会话已撤销时优先返回 401 SESSION_REVOKED。
+
+        非撤销会话自然到期返回 401 AUTH_REQUIRED。会话仍有效时，已消费的旧 refresh 被重放返回 401 SESSION_REVOKED 并撤销整个会话；此检查优先于该旧 token 自身到期检查。
+
+        非撤销、未消费的 token 自然到期返回 401 AUTH_REQUIRED。自然到期判断包含到期时刻本身；客户端禁止自动重试旧 token。
+
+        客户端将同一会话的并发刷新合并为一次，并将新令牌对原子写入加密秘密表。
+
+        刷新已成功但响应丢失时的恢复方案为待协商事项；本稿不提供宽限期或幂等例外。
+
+        '
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: 同一会话的令牌已轮换，返回新令牌对。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/auth/logout:
+    post:
+      operationId: logoutSession
+      x-contract-status: accepted-first-batch
+      tags:
+      - auth
+      summary: 撤销目标会话或提交待撤销证明
+      description: |-
+        可使用 Bearer 或 JSON refreshToken proof。只要提供 Bearer，就先校验 JWT；无效或已到期的 Bearer 优先返回 401 AUTH_REQUIRED，即使 body proof 有效也不能忽略该错误。
+        body proof 可以是当前或已轮换的旧 refresh，仅证明撤销其原会话，不能登录、刷新或用于其他受保护接口。proof 有效期以该 token 发放时的原 refreshExpiresAt 为准；会话后续刷新不会延长旧 proof。now >= 原 refreshExpiresAt 时返回 401 AUTH_REQUIRED。
+        Bearer 与 proof 同时提供且均有效时，必须属于同一会话；不同会话返回 400 VALIDATION，不撤销任何一方。proof-only 不得附加新会话 Bearer。
+        通过本操作凭据校验后，已撤销目标重复调用返回 204；未过期 proof 的重复撤销可幂等成功，已到期 proof 不因目标已撤销而返回 204。
+        客户端先原子加密保存待撤销 proof 及其原 refreshExpiresAt，再清除活动令牌。旧队列缺少到期字段时兼容为 null，不把缺字段当作已过期。服务器明确返回 proof-only 的 401 AUTH_REQUIRED 时清除该项并抛 CloudRevocationUnavailableException，表示远端撤销未获确认；不能作为远端撤销成功，也不能只凭本机时钟提前丢弃 proof。未知或畸形 401、网络错误保留待撤销项。
+        补撤销使用 proof-only；应用启动、回前台与网络恢复的自动重试接线仍待完整 Cloud UI 实现，不由首批接口基础层承诺已自动补发。退出保留本机内容与代理凭据。
+      responses:
+        '204':
+          description: 当前会话已撤销，无响应正文。
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+      - BearerAuth: []
+      - {}
+      x-authentication-rule: 校验已提供的 Bearer 优先；proof 须未到其原 refreshExpiresAt；同时提供的有效凭据须指向同一会话
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutProofRequest'
+  /v1/account:
+    get:
+      operationId: getAccount
+      x-contract-status: accepted-first-batch
+      tags:
+      - account
+      summary: 获取当前账号、权益与设备快照
+      description: 从有效 Bearer 会话获取当前账号快照，包括全部持有有效会话的设备和本机 deviceId。deviceLimit=10，只有 syncActive=true 占名额。免费账号返回
+        entitlement=null、syncActiveDeviceCount=0。entitlement.status 为 active/expired/revoked，取消续费但未到期仍
+        active。所有字段来自一致快照。
+      responses:
+        '200':
+          description: 当前账号快照。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteAccount
+      x-contract-status: accepted-first-batch
+      tags:
+      - account
+      summary: 删除当前账号与云端数据
+      description: '要求当前会话有效，客户端已完成两次确认。只从 Bearer 会话确定要删除的账号。
+
+        服务端撤销全部会话，删除同步记录、设备、身份和邮箱，销毁账号数据密钥。
+
+        购买记录按财税要求匿名保留。客户端保留本机内容与代理凭据。
+
+        删除账号不会代替用户到购买渠道取消订阅；响应提供结构化取消提醒信息。
+
+        本稿未定义删除成功后响应丢失的重试鉴权结果。
+
+        '
+      responses:
+        '200':
+          description: 账号已删除；客户端依据结构化字段显示渠道取消订阅提醒。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteAccountResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/devices/{id}:
+    delete:
+      operationId: removeDevice
+      x-contract-status: accepted-first-batch
+      tags:
+      - devices
+      summary: 移除当前账号下的设备
+      description: 移除当前账号的非本机设备，撤销它的全部会话并释放同步名额。未知、跨账号或已移除的 deviceId 一律 404 NOT_FOUND，重复移除不返回 204；404 不能证明首次删除成功。本机设备 400 VALIDATION，退出本机应使用 logout。目标设备下一请求 401，保留本机数据。授权与写入同事务，所有受保护请求检查会话撤销状态。
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 待移除设备的不透明标识。
+        schema:
+          $ref: '#/components/schemas/OpaqueId'
+      responses:
+        '204':
+          description: 目标设备全部会话已撤销且同步名额已释放，无响应正文。
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'access JWT 有效期 15 分钟，携带 accountId、deviceId、sessionId。
+
+        服务端还需核验会话有效性及撤销状态，所有账号隔离由服务端执行。
+
+        '
+  schemas:
+    OpaqueId:
+      type: string
+      minLength: 1
+      x-contract-status: accepted-first-batch
+      description: 不透明标识；客户端不得解析其结构或假设它是 UUID。
+    UtcTimestamp:
+      type: string
+      format: date-time
+      pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$
+      x-contract-status: accepted-first-batch
+      description: RFC3339 UTC 时间，必须使用 Z 结尾，可含小数秒。
+    DeviceOs:
+      type: string
+      enum:
+      - ios
+      - android
+      - macos
+      - windows
+      - linux
+      x-contract-status: accepted-first-batch
+      description: 操作系统编码草案，支持产品既定五个平台。
+    PurchaseSource:
+      type: string
+      enum:
+      - apple
+      - google
+      - web
+      x-contract-status: accepted-first-batch
+    DeviceInput:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - installationId
+      - name
+      - os
+      properties:
+        installationId:
+          type: string
+          format: uuid
+          description: 首次启动生成的稳定安装标识；UUID 格式为提案。文件备份不包含此设备身份。
+          x-contract-status: accepted-first-batch
+        name:
+          type: string
+          minLength: 1
+          description: 设备显示名，不得使用 V3 演示数据代替真实设备信息。
+        os:
+          $ref: '#/components/schemas/DeviceOs'
+    EmailStartRequest:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          description: 用户输入的邮箱；不得记录明文邮箱。
+    EmailStartResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      description: 严格仅包含 challengeId 与 expiresAt；不返回账号存在性或用户资料。旧客户端可忽略新字段，新客户端与服务端按 0.1.1 一起适配。
+      required:
+      - challengeId
+      - expiresAt
+      properties:
+        challengeId:
+          $ref: '#/components/schemas/OpaqueId'
+        expiresAt:
+          allOf:
+          - $ref: '#/components/schemas/UtcTimestamp'
+          description: 服务端当前时间加 10 分钟的 UTC RFC3339 时间，使用 Z 后缀；不是重发冷却。
+    EmailVerifyRequest:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - challengeId
+      - code
+      - device
+      properties:
+        challengeId:
+          $ref: '#/components/schemas/OpaqueId'
+        code:
+          type: string
+          pattern: ^[0-9]{6}$
+          minLength: 6
+          maxLength: 6
+          description: 保留前导零的 6 位验证码字符串，禁止写入日志。
+        device:
+          $ref: '#/components/schemas/DeviceInput'
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          description: 当前尚未使用的不透明 refresh token。禁止自动重试旧 token。
+    TokenResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - accessToken
+      - accessExpiresAt
+      - refreshToken
+      - refreshExpiresAt
+      - accountId
+      - deviceId
+      - sessionId
+      properties:
+        accessToken:
+          type: string
+          minLength: 1
+          description: JWT，15 分钟有效。只存于加密秘密表；禁止日志和未加密缓存。
+        accessExpiresAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+        refreshToken:
+          type: string
+          minLength: 1
+          description: 不透明随机串，90 天有效；每次刷新轮换并顺延期限。
+        refreshExpiresAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+        accountId:
+          $ref: '#/components/schemas/OpaqueId'
+        deviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        sessionId:
+          $ref: '#/components/schemas/OpaqueId'
+    Account:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - id
+      - email
+      - displayName
+      properties:
+        id:
+          $ref: '#/components/schemas/OpaqueId'
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: 邮箱可能为空，例如 provider 未提供邮箱；不同 provider 相同邮箱不自动合并账号。
+        displayName:
+          type: string
+          nullable: true
+          description: 账号显示名可为空；展示回退规则不由本草案新增。
+    Entitlement:
+      type: object
+      nullable: true
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      description: null 表示无权益记录；非 null 按 status 与 expiresAt 判断。取消续费但未到期仍 active；禁止简化为非 null 即 isPro。
+      required:
+      - plan
+      - source
+      - status
+      - expiresAt
+      properties:
+        plan:
+          type: string
+          enum:
+          - monthly
+          - yearly
+        source:
+          $ref: '#/components/schemas/PurchaseSource'
+        status:
+          type: string
+          enum:
+          - active
+          - expired
+          - revoked
+          description: 已确认权益状态；未知未来状态客户端保留但不能据此启用同步。
+        expiresAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+    Device:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - id
+      - name
+      - os
+      - syncActive
+      - lastSeenAt
+      properties:
+        id:
+          $ref: '#/components/schemas/OpaqueId'
+        name:
+          type: string
+          minLength: 1
+        os:
+          $ref: '#/components/schemas/DeviceOs'
+        syncActive:
+          type: boolean
+          description: 为 true 时该设备占用一个同步名额；登录成功不自动使此值变为 true。
+        lastSeenAt:
+          $ref: '#/components/schemas/UtcTimestamp'
+    AccountResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - account
+      - entitlement
+      - devices
+      - currentDeviceId
+      - deviceLimit
+      - syncActiveDeviceCount
+      x-invariants:
+      - devices 仅包含当前账号下持有有效会话的设备。
+      - device.id 唯一；同一 installation 的多个会话不重复列出设备。
+      - currentDeviceId 与请求 Bearer 会话绑定的 deviceId 一致。
+      - syncActiveDeviceCount 等于同一快照中 syncActive 为 true 的设备数。
+      properties:
+        account:
+          $ref: '#/components/schemas/Account'
+        entitlement:
+          $ref: '#/components/schemas/Entitlement'
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+          description: 全部已登录设备，含未激活同步的设备；不是只返回最多 10 台已激活设备。
+        currentDeviceId:
+          $ref: '#/components/schemas/OpaqueId'
+        deviceLimit:
+          type: integer
+          enum:
+          - 10
+          description: 现行同步设备名额上限。
+        syncActiveDeviceCount:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: 占用同步名额的设备数，用于 N / 10 展示。
+    CancelSubscriptionNotice:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - required
+      - sources
+      description: '提醒用户到购买渠道取消订阅，不表示服务端已取消商店或网页订阅。
+
+        required=false 时 sources 为空数组；required=true 时 sources 包含需要提醒的渠道。
+
+        required 判定及 sources 选取的详细来源尚待服务端确认。
+
+        '
+      properties:
+        required:
+          type: boolean
+        sources:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/PurchaseSource'
+    DeleteAccountResponse:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - cancelSubscription
+      properties:
+        cancelSubscription:
+          $ref: '#/components/schemas/CancelSubscriptionNotice'
+    ErrorCode:
+      type: string
+      enum:
+      - AUTH_REQUIRED
+      - SESSION_REVOKED
+      - NO_ENTITLEMENT
+      - DEVICE_LIMIT
+      - SCHEMA_UNSUPPORTED
+      - RATE_LIMITED
+      - PURCHASE_OWNED_BY_OTHER
+      - VALIDATION
+      - INTERNAL_ERROR
+      - NOT_FOUND
+      x-contract-status: accepted-first-batch
+      description: 10 个已确认错误码；客户端按 code 分支，不解析 message。INTERNAL_ERROR 为脱敏内部失败，NOT_FOUND 为资源/路由不存在。同步/购买沿用后续接口既定
+        code。
+    CloudError:
+      type: object
+      additionalProperties: false
+      x-contract-status: accepted-first-batch
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              $ref: '#/components/schemas/ErrorCode'
+            message:
+              type: string
+              description: 诊断说明；客户端不得依靠内容或语言解析业务状态。
+            reason:
+              $ref: '#/components/schemas/EmailChallengeReason'
+    EmailChallengeReason:
+      type: string
+      description: 可选 error.reason，仅邮箱 challenge 校验的 400 VALIDATION 返回；普通参数校验和其他状态／code 不附此字段。未知值客户端按通用校验失败处理，不解析 message。
+      enum:
+      - wrongCode
+      - expired
+      - attemptsExceeded
+      - consumed
+      - missing
+    LogoutProofRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          description: 仅供撤销目标会话的 refresh proof，允许已轮换旧值；仅在该 token 的原 refreshExpiresAt 前有效，后续轮换不延长其期限。客户端加密保存其值与原到期时间，禁止日志；到期或未确认错误不作为远端撤销成功。
+  responses:
+    ValidationError:
+      description: 请求参数或 challenge 校验失败；error.code 为 VALIDATION。仅邮箱 challenge 校验附 error.reason，普通参数校验无 reason；具体尝试和终止规则见 email/verify。
+      x-contract-status: accepted-first-batch
+      x-error-codes:
+      - VALIDATION
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    AuthenticationError:
+      description: 'error.code 为 AUTH_REQUIRED 或 SESSION_REVOKED。
+
+        access token 失效可由客户端触发一次合并的刷新；refresh 无效或会话撤销时转为退出状态。refresh 错误优先级与 logout 凭据校验见对应操作描述，不把已撤销会话概括为自然到期 AUTH_REQUIRED。
+
+        logout 的未知 401 不证明撤销成功，待撤销项仍保留；依据 proof 原到期时间确认失效时清除队列项并报告 CloudRevocationUnavailableException，远端撤销未获确认。
+
+        客户端保留本机内容与代理凭据，不得因 Cloud 鉴权失败阻断本地功能。
+
+        '
+      x-contract-status: accepted-first-batch
+      x-error-codes:
+      - AUTH_REQUIRED
+      - SESSION_REVOKED
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    RateLimitedError:
+      description: error.code 为 RATE_LIMITED；Retry-After 给出从当前响应起应等待的整数秒数。
+      x-contract-status: accepted-first-batch
+      x-error-codes:
+      - RATE_LIMITED
+      headers:
+        Retry-After:
+          description: 最短等待秒数，本草案只使用秒数形式，不使用 HTTP-date。
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    InternalError:
+      description: 脱敏内部/框架失败；error.code 为 INTERNAL_ERROR。
+      x-error-codes:
+      - INTERNAL_ERROR
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+    NotFoundError:
+      description: 资源不存在；未知、跨账号或已移除的 deviceId 统一 NOT_FOUND，重复移除也返回 404，避免泄露资源归属。该响应不证明首次删除成功。
+      x-error-codes:
+      - NOT_FOUND
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CloudError'
+x-confirmed-by:
+- Avalon 客户端
+- Avalon-cloud 服务端

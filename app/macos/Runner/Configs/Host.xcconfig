@@ -1,0 +1,9 @@
+// Override these together when signing registered App IDs and App Groups.
+#include "../../Flutter/ephemeral/Flutter-Generated.xcconfig"
+AVALON_APP_GROUP = $(DEVELOPMENT_TEAM).app.getavalon.avalon
+AVALON_TUNNEL_BUNDLE_ID = app.getavalon.avalon.PacketTunnel
+AVALON_CORE_VERSION = 1.14.2
+AVALON_PUBLIC_NETWORK_VERSION = 1
+MACOSX_DEPLOYMENT_TARGET = 13.0
+AVALON_HOST_ENTITLEMENTS = Runner/Host.entitlements
+AVALON_DEBUG_ENTITLEMENTS = Runner/DebugProfile.entitlements

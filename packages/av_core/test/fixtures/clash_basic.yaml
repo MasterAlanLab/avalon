@@ -1,0 +1,143 @@
+mixed-port: 7890
+mode: rule
+log-level: info
+dns:
+  enable: true
+tun:
+  enable: false
+proxies:
+  - name: SS 01
+    type: ss
+    server: 1.2.3.4
+    port: 8388
+    cipher: aes-256-gcm
+    password: fake-ss
+    udp: true
+    plugin: obfs
+    plugin-opts:
+      mode: http
+      host: bing.com
+  - name: VMess WS
+    type: vmess
+    server: v.example.com
+    port: 443
+    uuid: 00000000-0000-4000-8000-000000000001
+    alterId: 0
+    cipher: auto
+    tls: true
+    servername: v.example.com
+    network: ws
+    ws-opts:
+      path: /ray
+      headers:
+        Host: v.example.com
+  - name: Reality
+    type: vless
+    server: r.example.com
+    port: 443
+    uuid: 00000000-0000-4000-8000-000000000002
+    network: grpc
+    grpc-opts:
+      grpc-service-name: svc
+    tls: true
+    servername: www.apple.com
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: fakeRealityPublicKey0000000000000000000000A
+      short-id: ab
+  - name: Trojan
+    type: trojan
+    server: t.example.com
+    port: 443
+    password: fake-trojan
+    sni: t.example.com
+    skip-cert-verify: true
+  - name: HY2
+    type: hysteria2
+    server: h.example.com
+    port: 443
+    password: fake-hy2
+    up: 50 Mbps
+    down: "1 Gbps"
+    ports: 20000-30000
+  - name: TUIC
+    type: tuic
+    server: tu.example.com
+    port: 443
+    uuid: 00000000-0000-4000-8000-000000000003
+    password: fake-tuic
+    congestion-controller: cubic
+    alpn: [h3]
+  - name: Chained
+    type: socks5
+    server: 10.0.0.2
+    port: 1080
+    dialer-proxy: Trojan
+  - name: Old SSR
+    type: ssr
+    server: x.example.com
+    port: 1
+  - name: ShadowTLS
+    type: ss
+    server: s.example.com
+    port: 443
+    cipher: aes-128-gcm
+    password: fake
+    plugin: shadow-tls
+proxy-providers:
+  remote:
+    type: http
+    url: https://provider.example.com/list
+    filter: 香港
+    override:
+      additional-prefix: "[P] "
+  local:
+    type: inline
+    payload:
+      - name: Inline HTTP
+        type: http
+        server: proxy.example.com
+        port: 8080
+proxy-groups:
+  - name: 节点选择
+    type: select
+    proxies: [自动选择, SS 01, Reality, Missing, DIRECT]
+  - name: 自动选择
+    type: url-test
+    use: [remote]
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+  - name: 故障转移
+    type: fallback
+    proxies: [Trojan, HY2]
+  - name: 链式
+    type: relay
+    proxies: [SS 01, Trojan]
+  - name: 全部
+    type: select
+    include-all-proxies: true
+    exclude-filter: Chained
+rule-providers:
+  ads:
+    type: http
+    behavior: domain
+    format: text
+    url: https://rules.example.com/ads.txt
+  binary:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://rules.example.com/x.mrs
+rules:
+  - DOMAIN-SUFFIX,google.com,节点选择
+  - GEOSITE,CN,DIRECT
+  - GEOIP,CN,DIRECT,no-resolve
+  - GEOIP,LAN,DIRECT
+  - IP-CIDR,8.8.8.8/32,节点选择,no-resolve
+  - DST-PORT,8000-9000,REJECT
+  - RULE-SET,ads,REJECT
+  - RULE-SET,binary,REJECT
+  - AND,((DOMAIN,a.com),(NETWORK,UDP)),REJECT
+  - PROCESS-NAME,curl,DIRECT
+  - DOMAIN,x.com,链式
+  - MATCH,节点选择

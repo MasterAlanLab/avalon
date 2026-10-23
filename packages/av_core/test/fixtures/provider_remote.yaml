@@ -1,0 +1,11 @@
+proxies:
+  - name: 香港 01
+    type: trojan
+    server: hk1.example.com
+    port: 443
+    password: fake-p1
+  - name: 日本 01
+    type: trojan
+    server: jp1.example.com
+    port: 443
+    password: fake-p2

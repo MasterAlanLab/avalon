@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status bar icon of the connection notification: the ladder mark of
+     app/branding/icon.svg without its route nodes, cropped like the tray
+     marks (viewBox 230 230 560 560) so it stays legible at 24dp. Android
+     draws only its shape, in the system's colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="560"
+    android:viewportHeight="560">
+    <group android:translateX="-230" android:translateY="-230">
+        <path
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="72"
+            android:strokeLineCap="round"
+            android:pathData="M354,704 L454,350 M570,350 L670,704" />
+        <path
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="54"
+            android:strokeLineCap="round"
+            android:pathData="M407,586 H617 M426,516 H598 M446,446 H578" />
+    </group>
+</vector>

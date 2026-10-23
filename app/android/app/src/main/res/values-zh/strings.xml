@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="host_notification_channel">连接状态</string>
+    <string name="host_notification_title">Avalon 已连接</string>
+    <string name="host_notification_stop">停止</string>
+</resources>

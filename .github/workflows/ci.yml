@@ -1,0 +1,73 @@
+name: V2 CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+# Branches, PRs and manual runs only check source. Release builds live in release.yml.
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  checks:
+    name: Workspace, contract, Go and workflow checks
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Check Dart formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          app/lib app/gallery app/test app/integration_test app/tool
+          packages/av_core/lib packages/av_core/test
+          packages/av_design/lib packages/av_design/test
+      - name: Analyze and test core application behavior
+        working-directory: app
+        run: |
+          flutter analyze --no-pub
+          flutter test --no-pub
+      - name: Analyze and test the domain package
+        working-directory: packages/av_core
+        run: |
+          dart analyze
+          dart test
+      - name: Analyze and test the design package
+        working-directory: packages/av_design
+        run: |
+          flutter analyze --no-pub
+          flutter test --no-pub
+      - name: Check Go formatting, vet and compiled plans against the real core
+        working-directory: core
+        run: |
+          unformatted=$(gofmt -l bridge mobile cmd tools.go)
+          if [ -n "$unformatted" ]; then
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
+          ./build.sh test
+          ./check_plans.sh
+      - name: Verify the immutable public contracts and CI packaging
+        run: |
+          python -m pip install -r tool/requirements-cloud-contract.txt
+          python tool/check_cloud_contract.py
+          python -m unittest discover -s tool -p 'test_cloud_contract.py'
+          python -m unittest discover -s tool/ci -p 'test_*.py'
+      - name: Validate workflow syntax
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: Check iOS protected storage
+        run: app/tool/check_ios_storage.sh

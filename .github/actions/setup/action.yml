@@ -1,0 +1,31 @@
+name: Set up the pinned Avalon toolchains
+description: Read repository pins, install Flutter and Go, and resolve the workspace lockfile.
+outputs:
+  version:
+    description: Application version from app/pubspec.yaml.
+    value: ${{ steps.metadata.outputs.version }}
+  build_number:
+    description: Monotonic CI build number.
+    value: ${{ steps.metadata.outputs.build_number }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: '3.12'
+    - name: Read repository pins and validate the version
+      id: metadata
+      shell: bash
+      run: python tool/ci/artifacts.py metadata --github-output "$GITHUB_OUTPUT"
+    - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+      with:
+        flutter-version: ${{ steps.metadata.outputs.flutter_version }}
+        channel: stable
+        cache: true
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: core/go.mod
+        cache-dependency-path: core/go.sum
+    - name: Resolve the locked Dart workspace
+      shell: bash
+      run: flutter pub get --enforce-lockfile
